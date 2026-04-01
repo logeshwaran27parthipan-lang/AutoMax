@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import axios from "axios";
 
 export default function AIPage() {
-  const [model, setModel] = useState("gemini");
+  const [model, setModel] = useState("groq");
   const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,8 @@ export default function AIPage() {
     try {
       const res = await axios.post("/api/ai", { model, prompt });
       const data = res.data;
-      if (model === "gemini") {
+      // Groq returns Gemini-like 'candidates' structure; treat groq like gemini here
+      if (model === "gemini" || model === "groq") {
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         setResponse(text || JSON.stringify(data, null, 2));
       } else {
@@ -41,8 +42,8 @@ export default function AIPage() {
           onChange={(e) => setModel(e.target.value)}
           className="w-full p-2 border rounded mb-4"
         >
+          <option value="groq">Groq (LLaMA 3) — Fastest</option>
           <option value="gemini">Gemini</option>
-          <option value="claude">Claude</option>
         </select>
         <label className="block font-medium mb-2">Prompt</label>
         <textarea
