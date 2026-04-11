@@ -12,11 +12,31 @@ export async function GET(req: NextRequest) {
 
     const workflows = await prisma.workflow.findMany({
       where: { userId: payload.userId },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: { select: { runs: true } },
+        runs: {
+          orderBy: { startedAt: 'desc' },
+          take: 1,
+          select: { startedAt: true, status: true },
+        },
+      },
     })
 
-    return NextResponse.json(workflows)
+    const result = workflows.map((w) => ({
+      id: w.id,
+      name: w.name,
+      description: w.description,
+      triggers: w.triggers,
+      steps: w.steps,
+      createdAt: w.createdAt,
+      runCount: w._count.runs,
+      lastRun: w.runs[0] ?? null,
+    }))
+
+    return NextResponse.json(result)
   } catch (error) {
+    console.error('GET /api/workflows error:', error)
     return NextResponse.json({ error: 'Failed to fetch workflows' }, { status: 500 })
   }
 }
@@ -34,18 +54,21 @@ export async function POST(req: NextRequest) {
 
     if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
+    const triggersJson = typeof triggers === 'string' ? { type: triggers } : triggers
+
     const workflow = await prisma.workflow.create({
       data: {
         name,
         description,
-        triggers,
+        triggers: triggersJson,
         steps,
         userId: payload.userId,
-      }
+      },
     })
 
     return NextResponse.json(workflow, { status: 201 })
   } catch (error) {
+    console.error('POST /api/workflows error:', error)
     return NextResponse.json({ error: 'Failed to create workflow' }, { status: 500 })
   }
 }
