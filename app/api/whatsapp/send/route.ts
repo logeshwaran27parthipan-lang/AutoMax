@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sendWhatsAppMessage } from "../../../../lib/whatsapp";
+import actions from "@/lib/actions";
 import { verifyToken } from "../../../../lib/auth";
 import { cookies } from "next/headers";
 
@@ -11,21 +11,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { phone, message } = await req.json();
-    if (!phone || !message) {
+    const body = await req.json();
+    const to = body.to || body.phone;
+    const message = body.message;
+    if (!to || !message) {
       return NextResponse.json(
-        { error: "phone and message are required" },
-        { status: 400 }
+        { error: "to (or phone) and message are required" },
+        { status: 400 },
       );
     }
 
-    const result = await sendWhatsAppMessage(phone, message);
-    return NextResponse.json({ success: true, result });
+    // Use action registry to perform the work; keep API layer thin
+    const result = await actions.send_whatsapp({ to, message });
+
+    if (!result || result.success === false) {
+      return NextResponse.json(
+        { success: false, error: result?.error ?? "failed" },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ success: true });
   } catch (err: any) {
     console.error(err);
     return NextResponse.json(
       { error: err?.message ?? "Failed to send WhatsApp message" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

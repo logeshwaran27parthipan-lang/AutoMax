@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { sendEmailWithSmtp } from "@/lib/gmail";
-import { sendWhatsAppMessage } from "@/lib/whatsapp";
-import { getSheetRows, appendToSheet } from "@/lib/sheets";
+import { actions } from "@/lib/actions";
 
 export async function POST(
   req: NextRequest,
@@ -62,6 +60,13 @@ export async function POST(
 
     const results: Array<any> = [];
 
+    // Map legacy step types to action keys if necessary
+    const mapTypeToAction = (t: string) => {
+      if (!t) return t;
+      if (t === "ai_generate") return "ai_process";
+      return t;
+    };
+
     for (let i = 0; i < stepsArray.length; i++) {
       const step = stepsArray[i];
       const type = step?.type || "unknown";
@@ -74,96 +79,53 @@ export async function POST(
       };
 
       try {
-        if (type === "send_email") {
-          const smtpUser = process.env.GMAIL_SMTP_USER;
-          const smtpPass = process.env.GMAIL_SMTP_PASS;
-          if (!smtpUser || !smtpPass)
-            throw new Error("Missing GMAIL_SMTP_USER or GMAIL_SMTP_PASS");
-          const to = step.to;
-          const subject = step.subject || "";
-          const body = step.body || "";
-          const html = "<p>" + body + "</p>";
-          const sendRes = await sendEmailWithSmtp(
-            smtpUser,
-            smtpPass,
-            to,
-            subject,
-            body,
-            html,
-          );
-          resEntry.success = true;
-          resEntry.result = sendRes;
-        } else if (type === "send_whatsapp") {
-          const phone = step.phone;
-          const message = step.message || "";
-          const waRes = await sendWhatsAppMessage(phone, message);
-          resEntry.success = true;
-          resEntry.result = waRes;
-        } else if (type === "ai_generate") {
-          const model = step.model || "gemini";
-          const prompt = step.prompt || "";
-          // forward auth cookie to internal AI endpoint
-          const cookieHeader =
-            req.headers.get("cookie") || `auth-token=${cookie}`;
-          const aiRes = await fetch(new URL("/api/ai", req.url).toString(), {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Cookie: cookieHeader,
-            },
-            body: JSON.stringify({ model, prompt }),
-          });
-          const data = await aiRes.json();
-          // extract generated text where possible
-          let generated: any = null;
-          if (data == null) {
-            generated = null;
-          } else if (
-            Array.isArray(data.candidates) &&
-            data.candidates.length > 0
-          ) {
-            // Gemini-style candidates
-            const cand = data.candidates[0];
-            if (cand.output) generated = cand.output;
-            else if (cand.content && Array.isArray(cand.content)) {
-              const parts = cand.content.flatMap((c: any) =>
-                c.parts ? c.parts.map((p: any) => p.text || "") : [],
-              );
-              generated = parts.join("");
-            } else generated = cand;
-          } else if (data.output && Array.isArray(data.output)) {
-            const parts = data.output.flatMap((o: any) =>
-              o.content
-                ? o.content.flatMap((c: any) =>
-                    c.parts ? c.parts.map((p: any) => p.text || "") : [],
-                  )
-                : [],
-            );
-            generated = parts.join("");
-          } else if (data.completion) {
-            generated = data.completion;
-          } else if (data.message && data.message.content) {
-            generated = data.message.content;
-          } else {
-            generated = data;
-          }
-          resEntry.success = true;
-          resEntry.result = generated;
-        } else if (type === "sheets_read") {
-          const spreadsheetId = step.spreadsheetId;
-          const range = step.range;
-          const rows = await getSheetRows(spreadsheetId, range);
-          resEntry.success = true;
-          resEntry.result = rows;
-        } else if (type === "sheets_append") {
-          const spreadsheetId = step.spreadsheetId;
-          const range = step.range;
-          const values = step.values;
-          const appendRes = await appendToSheet(spreadsheetId, range, values);
-          resEntry.success = true;
-          resEntry.result = appendRes;
+        const actionName = mapTypeToAction(type);
+
+        // improved type-safe lookup
+        const action = actions[
+          actionName as keyof typeof actions
+        ] as unknown as Function | undefined;
+
+        if (!action || typeof action !== "function") {
+          resEntry.error = `No action registered for step type: ${type}`;
         } else {
-          resEntry.error = `Unknown step type: ${type}`;
+          // Log execution for observability
+          console.log("Executing step:", type, step);
+
+          // Provide contextual info to actions
+          const actionInput = { ...(step || {}), workflowId: id };
+
+          // Execute action sequentially
+          const actionResult: any = await action(actionInput);
+
+          // Clean result handling
+          if (!actionResult) {
+            resEntry.success = false;
+            resEntry.error = "Action returned no result";
+          } else if (actionResult.success === false) {
+            resEntry.success = false;
+            resEntry.error =
+              actionResult.error ?? actionResult.result ?? "action failed";
+            resEntry.result = actionResult.result ?? null;
+          } else {
+            resEntry.success = true;
+            if (Object.prototype.hasOwnProperty.call(actionResult, "result")) {
+              resEntry.result = actionResult.result;
+            } else {
+              const { intent, response, message: msg } = actionResult as any;
+              if (
+                typeof intent !== "undefined" ||
+                typeof response !== "undefined"
+              ) {
+                resEntry.result = {
+                  intent: intent ?? null,
+                  response: response ?? msg ?? null,
+                };
+              } else {
+                resEntry.result = actionResult;
+              }
+            }
+          }
         }
       } catch (stepErr: any) {
         resEntry.error = stepErr?.message || String(stepErr);

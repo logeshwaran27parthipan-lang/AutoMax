@@ -1,12 +1,8 @@
 /**
- * Lightweight WhatsApp integration helper.
- * This module is intentionally minimal: no workflow/business logic —
- * only a small wrapper that sends a message to a configured WhatsApp HTTP
- * API (WAHA-style) endpoint.
+ * WhatsApp integration helper (WAHA-style HTTP API).
  *
- * Usage:
- *   import { sendWhatsAppMessage } from '@/lib/validations/workflow';
- *   await sendWhatsAppMessage('+15551234567', 'Hello world');
+ * Exports sendWhatsAppMessage(to, message) -> Promise<{ success, result?, error? }>
+ * This file is a thin integration layer that callers (actions) can use.
  */
 
 export async function sendWhatsAppMessage(
@@ -29,7 +25,6 @@ export async function sendWhatsAppMessage(
     );
   }
 
-  // Normalize URL and POST to /send by default
   const url = `${baseUrl.replace(/\/$/, "")}/send`;
 
   try {
@@ -42,12 +37,11 @@ export async function sendWhatsAppMessage(
       body: JSON.stringify({ to, message }),
     });
 
-    // Try to parse JSON response (if any)
     let data: any = null;
     try {
       data = await res.json();
     } catch (e) {
-      // ignore JSON parse errors
+      // ignore
     }
 
     if (!res.ok) {

@@ -1,10 +1,9 @@
-import nodemailer from "nodemailer";
-import type { EmailPayload } from "../../../types/index";
+import actions from "@/lib/actions";
 
 export async function POST(req: Request) {
   try {
-    const payload: EmailPayload = await req.json();
-    const { to, subject, html, text } = payload;
+    const payload = await req.json();
+    const { to, subject, html, text } = payload as any;
     if (!to || !subject) {
       return new Response(
         JSON.stringify({ error: "to and subject required" }),
@@ -12,48 +11,23 @@ export async function POST(req: Request) {
       );
     }
 
-    // Try Gmail (OAuth) if credentials present - otherwise fallback to SMTP via env
-    const clientId = process.env.GMAIL_CLIENT_ID;
-    const clientSecret = process.env.GMAIL_CLIENT_SECRET;
-    const smtpUser = process.env.GMAIL_SMTP_USER;
-    const smtpPass = process.env.GMAIL_SMTP_PASS;
+    const body = text || html || "";
 
-    if (clientId && clientSecret) {
-      // NOTE: This implementation expects an access token or refresh token setup in env for production.
-      // For now, attempt a simple SMTP fallback below if OAuth flow isn't configured.
+    const result = await actions.send_email({ to, subject, body });
+
+    if (!result || result.success === false) {
+      return new Response(
+        JSON.stringify({ success: false, error: result?.error ?? "failed" }),
+        { status: 500 },
+      );
     }
 
-    if (smtpUser && smtpPass) {
-      const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      });
-
-      const info = await transporter.sendMail({
-        from: smtpUser,
-        to,
-        subject,
-        text,
-        html,
-      });
-      return new Response(JSON.stringify({ messageId: info.messageId }), {
-        status: 200,
-      });
-    }
-
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
+  } catch (err: any) {
+    console.error(err);
     return new Response(
-      JSON.stringify({ error: "No valid email configuration found" }),
+      JSON.stringify({ error: err?.message ?? "Failed to send email" }),
       { status: 500 },
     );
-  } catch (err) {
-    console.error(err);
-    return new Response(JSON.stringify({ error: "Failed to send email" }), {
-      status: 500,
-    });
   }
 }

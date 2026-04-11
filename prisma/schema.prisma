@@ -16,6 +16,7 @@ model Workflow {
   createdAt   DateTime @default(now()) @map("created_at")
   userId      String   @map("user_id")
   user        User     @relation(fields: [userId], references: [id])
+  runs        WorkflowRun[]
 
   @@map("workflows")
 }
@@ -37,6 +38,50 @@ model User {
   name      String?
   createdAt DateTime   @default(now()) @map("created_at")
   workflows Workflow[]
+  conversations Conversation[]
+  workflowRuns  WorkflowRun[]
 
   @@map("users")
+}
+model Conversation {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  message   String
+  role      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("conversations")
+}
+
+model WorkflowRun {
+  id         String           @id @default(uuid())
+  workflowId String           @map("workflow_id")
+  userId     String           @map("user_id")
+  status     String           @default("running")
+  trigger    String?
+  payload    Json?
+  startedAt  DateTime         @default(now()) @map("started_at")
+  finishedAt DateTime?        @map("finished_at")
+  workflow   Workflow         @relation(fields: [workflowId], references: [id])
+  user       User             @relation(fields: [userId], references: [id])
+  steps      WorkflowRunStep[]
+
+  @@map("workflow_runs")
+}
+
+model WorkflowRunStep {
+  id          String      @id @default(uuid())
+  runId       String      @map("run_id")
+  stepIndex   Int         @map("step_index")
+  stepType    String      @map("step_type")
+  status      String      @default("pending")
+  input       Json?
+  output      Json?
+  error       String?
+  executedAt  DateTime    @default(now()) @map("executed_at")
+  run         WorkflowRun @relation(fields: [runId], references: [id])
+
+  @@map("workflow_run_steps")
 }

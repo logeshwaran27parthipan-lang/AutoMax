@@ -1,0 +1,3 @@
+UPDATE "workflows"
+SET "steps" = '[{"type":"ai_decision","prompt":"You are an automation AI. User message: {{message}}. Your job: extract real data only. Do NOT invent emails or phone numbers. If required data is missing, SKIP that action. Available actions: send_email (to, subject, body), send_whatsapp (to, message). Rules: NEVER leave fields empty. NEVER return incomplete params. Only include actions with COMPLETE data. Return ONLY JSON like: {\"steps\":[{\"action\":\"send_email\",\"params\":{\"to\":\"example@gmail.com\",\"subject\":\"Hello\",\"body\":\"Hi\"}}]}"}]'
+WHERE "id" = 'test1';
