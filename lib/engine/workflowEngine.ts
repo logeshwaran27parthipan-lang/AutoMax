@@ -188,27 +188,50 @@ ${interpolate(step.prompt, enrichedPayload)}`;
       // =============================
       // ⚙️ NORMAL ACTION STEP
       // =============================
-      const action = actions[step.type as keyof typeof actions];
+      // ⚙️ NORMAL ACTION STEP
+const action = actions[step.type as keyof typeof actions];
 
-      if (!action) {
-        console.log("No action:", step.type);
-        await logStep(runId, i, step.type, "failed",
-          step, null, `Unknown action: ${step.type}`);
-        continue;
-      }
+if (!action) {
+  console.log("No action:", step.type);
+  await logStep(runId, i, step.type, "failed",
+    step, null, `Unknown action: ${step.type}`);
+  continue;
+}
 
-      try {
-        const result = await action({
-          ...step,
-          ...enrichedPayload,
-        });
-        await logStep(runId, i, step.type, "success", step, result);
-      } catch (err: any) {
-        console.log("Step error:", err);
-        await logStep(runId, i, step.type, "failed",
-          step, null, err?.message || String(err));
-        runFailed = true;
-      }
+try {
+  // Interpolate ALL step fields before passing to action
+  const interpolatedStep: any = {};
+  for (const [key, value] of Object.entries(step)) {
+    if (typeof value === "string") {
+      interpolatedStep[key] = interpolate(value, enrichedPayload);
+    } else if (Array.isArray(value)) {
+      interpolatedStep[key] = value.map((item) =>
+        Array.isArray(item)
+          ? item.map((v) =>
+              typeof v === "string" ? interpolate(v, enrichedPayload) : v
+            )
+          : typeof item === "string"
+          ? interpolate(item, enrichedPayload)
+          : item
+      );
+    } else {
+      interpolatedStep[key] = value;
+    }
+  }
+
+  console.log("[INTERPOLATED STEP]:", interpolatedStep);
+
+  const result = await action({
+    ...interpolatedStep,
+    ...enrichedPayload,
+  });
+  await logStep(runId, i, step.type, "success", step, result);
+} catch (err: any) {
+  console.log("Step error:", err);
+  await logStep(runId, i, step.type, "failed",
+    step, null, err?.message || String(err));
+  runFailed = true;
+}
     }
 
     // Finish run

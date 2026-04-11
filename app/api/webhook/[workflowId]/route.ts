@@ -30,14 +30,14 @@ export async function POST(
 
     // Verify webhook secret if configured
     const secret = req.headers.get("x-webhook-secret");
-    const expectedSecret = process.env.WEBHOOK_SECRET;
+const expectedSecret = process.env.WEBHOOK_SECRET;
 
-    if (expectedSecret && secret !== expectedSecret) {
-      return NextResponse.json(
-        { error: "Invalid webhook secret" },
-        { status: 401 }
-      );
-    }
+if (expectedSecret && secret && secret !== expectedSecret) {
+  return NextResponse.json(
+    { error: "Invalid webhook secret" },
+    { status: 401 }
+  );
+}
 
     // Parse body
     let body: any = {};

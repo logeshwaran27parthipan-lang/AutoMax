@@ -4,19 +4,13 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, useRouter } from "next/navigation";
 
-type Step = {
-  type: string;
-  [key: string]: any;
-};
-
+type Step = { type: string; [key: string]: any };
 type Run = {
   id: string;
   status: string;
   startedAt: string;
-  finishedAt?: string;
   steps: { stepIndex: number; stepType: string; status: string; error?: string }[];
 };
-
 type Workflow = {
   id: string;
   name: string;
@@ -53,6 +47,15 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+const HINT = (
+  <p className="text-xs text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mt-1">
+    💡 Use <code className="font-mono font-bold">{"{{name}}"}</code>,{" "}
+    <code className="font-mono font-bold">{"{{email}}"}</code>,{" "}
+    <code className="font-mono font-bold">{"{{phone}}"}</code> — AutoMax fills
+    these from the trigger data automatically.
+  </p>
+);
+
 export default function WorkflowDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -64,13 +67,21 @@ export default function WorkflowDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
-  const [activeTab, setActiveTab] = useState<"steps" | "runs">("steps");
+  const [activeTab, setActiveTab] = useState<"steps" | "runs" | "test">("steps");
 
   // Add step form
   const [showAddForm, setShowAddForm] = useState(false);
   const [stepType, setStepType] = useState("send_email");
   const [formState, setFormState] = useState<any>({});
   const [formError, setFormError] = useState("");
+
+  // Test trigger
+  const [testPayload, setTestPayload] = useState(
+    JSON.stringify({ name: "John", email: "john@gmail.com", phone: "+919876543210", message: "Hello" }, null, 2)
+  );
+  const [testResult, setTestResult] = useState<any>(null);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testError, setTestError] = useState("");
 
   useEffect(() => { if (id) { fetchWorkflow(); fetchRuns(); } }, [id]);
 
@@ -80,7 +91,6 @@ export default function WorkflowDetailPage() {
     try {
       const res = await axios.get(`/api/workflows/${id}`);
       const data = res.data;
-      // normalize steps to array
       let steps = data.steps;
       if (!Array.isArray(steps)) {
         try { steps = steps ? JSON.parse(JSON.stringify(steps)) : []; } catch { steps = []; }
@@ -98,9 +108,7 @@ export default function WorkflowDetailPage() {
     try {
       const res = await axios.get(`/api/workflows/${id}/runs`);
       setRuns(res.data || []);
-    } catch {
-      // non-fatal
-    }
+    } catch { }
   }
 
   async function saveSteps(updatedSteps: Step[]) {
@@ -119,34 +127,24 @@ export default function WorkflowDetailPage() {
   function buildStep(): Step | null {
     setFormError("");
     const s: Step = { type: stepType };
-    try {
-      if (stepType === "send_email") {
-        if (!formState.to) { setFormError("To is required"); return null; }
-        if (!formState.subject) { setFormError("Subject is required"); return null; }
-        s.to = formState.to;
-        s.subject = formState.subject;
-        s.body = formState.body || "";
-      } else if (stepType === "send_whatsapp") {
-        if (!formState.to) { setFormError("Phone is required"); return null; }
-        s.to = formState.to;
-        s.message = formState.message || "";
-      } else if (stepType === "ai_decision") {
-        if (!formState.prompt) { setFormError("Prompt is required"); return null; }
-        s.prompt = formState.prompt;
-      } else if (stepType === "sheets_read") {
-        if (!formState.spreadsheetId) { setFormError("Spreadsheet ID is required"); return null; }
-        s.spreadsheetId = formState.spreadsheetId;
-        s.range = formState.range || "Sheet1!A1:Z100";
-      } else if (stepType === "sheets_append") {
-        if (!formState.spreadsheetId) { setFormError("Spreadsheet ID is required"); return null; }
-        s.spreadsheetId = formState.spreadsheetId;
-        s.range = formState.range || "Sheet1!A1";
-        try { s.values = formState.values ? JSON.parse(formState.values) : []; }
-        catch { setFormError("Values must be valid JSON e.g. [[\"a\",\"b\"]]"); return null; }
-      }
-    } catch (e: any) {
-      setFormError(e.message);
-      return null;
+    if (stepType === "send_email") {
+      if (!formState.to) { setFormError("To is required"); return null; }
+      if (!formState.subject) { setFormError("Subject is required"); return null; }
+      s.to = formState.to; s.subject = formState.subject; s.body = formState.body || "";
+    } else if (stepType === "send_whatsapp") {
+      if (!formState.to) { setFormError("Phone is required"); return null; }
+      s.to = formState.to; s.message = formState.message || "";
+    } else if (stepType === "ai_decision") {
+      if (!formState.prompt) { setFormError("Prompt is required"); return null; }
+      s.prompt = formState.prompt;
+    } else if (stepType === "sheets_read") {
+      if (!formState.spreadsheetId) { setFormError("Spreadsheet ID is required"); return null; }
+      s.spreadsheetId = formState.spreadsheetId; s.range = formState.range || "Sheet1!A1:Z100";
+    } else if (stepType === "sheets_append") {
+      if (!formState.spreadsheetId) { setFormError("Spreadsheet ID is required"); return null; }
+      s.spreadsheetId = formState.spreadsheetId; s.range = formState.range || "Sheet1!A1";
+      try { s.values = formState.values ? JSON.parse(formState.values) : []; }
+      catch { setFormError('Values must be valid JSON e.g. [["a","b"]]'); return null; }
     }
     return s;
   }
@@ -154,18 +152,15 @@ export default function WorkflowDetailPage() {
   async function handleAddStep() {
     const step = buildStep();
     if (!step || !workflow) return;
-    const updated = [...(workflow.steps || []), step];
-    await saveSteps(updated);
+    await saveSteps([...(workflow.steps || []), step]);
     setShowAddForm(false);
     setFormState({});
     setStepType("send_email");
   }
 
   async function handleDeleteStep(idx: number) {
-    if (!workflow) return;
-    if (!confirm("Delete this step?")) return;
-    const updated = workflow.steps.filter((_, i) => i !== idx);
-    await saveSteps(updated);
+    if (!workflow || !confirm("Delete this step?")) return;
+    await saveSteps(workflow.steps.filter((_, i) => i !== idx));
   }
 
   async function handleRun() {
@@ -179,6 +174,25 @@ export default function WorkflowDetailPage() {
       setError(err?.response?.data?.error || "Failed to run workflow");
     } finally {
       setRunning(false);
+    }
+  }
+
+  async function handleTestTrigger() {
+    setTestLoading(true);
+    setTestError("");
+    setTestResult(null);
+    try {
+      let parsed: any;
+      try { parsed = JSON.parse(testPayload); }
+      catch { setTestError("Invalid JSON — fix the test data above"); setTestLoading(false); return; }
+
+      const res = await axios.post(`/api/webhook/${id}`, parsed);
+      setTestResult(res.data);
+      await fetchRuns();
+    } catch (err: any) {
+      setTestError(err?.response?.data?.error || "Test failed");
+    } finally {
+      setTestLoading(false);
     }
   }
 
@@ -201,9 +215,7 @@ export default function WorkflowDetailPage() {
           {workflow && (
             <div>
               <h1 className="text-xl font-bold text-gray-900">{workflow.name}</h1>
-              {workflow.description && (
-                <p className="text-sm text-gray-500">{workflow.description}</p>
-              )}
+              {workflow.description && <p className="text-sm text-gray-500">{workflow.description}</p>}
             </div>
           )}
         </div>
@@ -216,14 +228,10 @@ export default function WorkflowDetailPage() {
         </button>
       </div>
 
-      {/* Error banner */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
-          {error}
-        </div>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>
       )}
 
-      {/* Loading */}
       {loading && (
         <div className="flex items-center gap-3 text-gray-400 py-12 justify-center">
           <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -234,7 +242,7 @@ export default function WorkflowDetailPage() {
       {!loading && workflow && (
         <>
           {/* Meta bar */}
-          <div className="flex items-center gap-4 text-xs text-gray-400 mb-6">
+          <div className="flex items-center gap-4 text-xs text-gray-400 mb-4 flex-wrap">
             <span>Created {new Date(workflow.createdAt).toLocaleDateString()}</span>
             <span>Trigger: <code className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{triggerLabel}</code></span>
             <span>{workflow.steps.length} step{workflow.steps.length !== 1 ? "s" : ""}</span>
@@ -257,22 +265,26 @@ export default function WorkflowDetailPage() {
 
           {/* Tabs */}
           <div className="flex gap-1 mb-4 border-b border-gray-200">
-            {(["steps", "runs"] as const).map((tab) => (
+            {([
+              { key: "steps", label: `Steps (${workflow.steps.length})` },
+              { key: "runs", label: `Run History (${runs.length})` },
+              { key: "test", label: "🧪 Test Trigger" },
+            ] as const).map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
                 className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                  activeTab === tab
+                  activeTab === tab.key
                     ? "border-blue-600 text-blue-600"
                     : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
               >
-                {tab === "steps" ? `Steps (${workflow.steps.length})` : `Run History (${runs.length})`}
+                {tab.label}
               </button>
             ))}
           </div>
 
-          {/* STEPS TAB */}
+          {/* ── STEPS TAB ── */}
           {activeTab === "steps" && (
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
@@ -285,12 +297,9 @@ export default function WorkflowDetailPage() {
                 </button>
               </div>
 
-              {/* Add step form */}
               {showAddForm && (
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
-                  {formError && (
-                    <div className="text-red-600 text-sm mb-3">{formError}</div>
-                  )}
+                  {formError && <div className="text-red-600 text-sm mb-3">{formError}</div>}
                   <div className="space-y-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Step type</label>
@@ -299,54 +308,58 @@ export default function WorkflowDetailPage() {
                         onChange={(e) => { setStepType(e.target.value); setFormState({}); setFormError(""); }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                       >
-                        {STEP_TYPES.map((t) => (
-                          <option key={t.value} value={t.value}>{t.label}</option>
-                        ))}
+                        {STEP_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                       </select>
                     </div>
 
                     {stepType === "send_email" && (
                       <>
+                        {HINT}
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">To (email)</label>
-                          <input className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="recipient@example.com" value={formState.to || ""} onChange={(e) => setFormState({ ...formState, to: e.target.value })} />
+                          <input className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="{{email}} or fixed@email.com" value={formState.to || ""} onChange={(e) => setFormState({ ...formState, to: e.target.value })} />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Subject</label>
-                          <input className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Email subject" value={formState.subject || ""} onChange={(e) => setFormState({ ...formState, subject: e.target.value })} />
+                          <input className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Hello {{name}}, welcome!" value={formState.subject || ""} onChange={(e) => setFormState({ ...formState, subject: e.target.value })} />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Body</label>
-                          <textarea className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows={3} placeholder="Email body..." value={formState.body || ""} onChange={(e) => setFormState({ ...formState, body: e.target.value })} />
+                          <textarea className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows={3} placeholder="Hi {{name}}, thanks for reaching out! We'll contact you at {{phone}}." value={formState.body || ""} onChange={(e) => setFormState({ ...formState, body: e.target.value })} />
                         </div>
                       </>
                     )}
 
                     {stepType === "send_whatsapp" && (
                       <>
+                        {HINT}
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Phone number</label>
-                          <input className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+91XXXXXXXXXX" value={formState.to || ""} onChange={(e) => setFormState({ ...formState, to: e.target.value })} />
+                          <input className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="{{phone}} or +91XXXXXXXXXX" value={formState.to || ""} onChange={(e) => setFormState({ ...formState, to: e.target.value })} />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Message</label>
-                          <textarea className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows={3} placeholder="WhatsApp message..." value={formState.message || ""} onChange={(e) => setFormState({ ...formState, message: e.target.value })} />
+                          <textarea className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows={3} placeholder="Hi {{name}}! Thanks for contacting us." value={formState.message || ""} onChange={(e) => setFormState({ ...formState, message: e.target.value })} />
                         </div>
                       </>
                     )}
 
                     {stepType === "ai_decision" && (
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Prompt</label>
-                        <textarea className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows={4} placeholder="Describe what the AI should decide and what actions to take..." value={formState.prompt || ""} onChange={(e) => setFormState({ ...formState, prompt: e.target.value })} />
-                      </div>
+                      <>
+                        {HINT}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Prompt</label>
+                          <textarea className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows={4} placeholder="The customer {{name}} sent: {{message}}. Decide whether to send_email or send_whatsapp." value={formState.prompt || ""} onChange={(e) => setFormState({ ...formState, prompt: e.target.value })} />
+                        </div>
+                      </>
                     )}
 
                     {(stepType === "sheets_read" || stepType === "sheets_append") && (
                       <>
+                        {HINT}
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Spreadsheet ID</label>
-                          <input className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="From the Google Sheets URL" value={formState.spreadsheetId || ""} onChange={(e) => setFormState({ ...formState, spreadsheetId: e.target.value })} />
+                          <input className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="From your Google Sheets URL" value={formState.spreadsheetId || ""} onChange={(e) => setFormState({ ...formState, spreadsheetId: e.target.value })} />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Range</label>
@@ -355,24 +368,17 @@ export default function WorkflowDetailPage() {
                         {stepType === "sheets_append" && (
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">Values (JSON)</label>
-                            <textarea className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono resize-none" rows={2} placeholder='[["value1","value2"]]' value={formState.values || ""} onChange={(e) => setFormState({ ...formState, values: e.target.value })} />
+                            <textarea className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono resize-none" rows={2} placeholder='[["{{name}}","{{email}}","{{phone}}"]]' value={formState.values || ""} onChange={(e) => setFormState({ ...formState, values: e.target.value })} />
                           </div>
                         )}
                       </>
                     )}
 
                     <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={handleAddStep}
-                        disabled={saving}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 font-medium"
-                      >
+                      <button onClick={handleAddStep} disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 font-medium">
                         {saving ? "Saving..." : "Add Step"}
                       </button>
-                      <button
-                        onClick={() => { setShowAddForm(false); setFormState({}); setFormError(""); }}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
-                      >
+                      <button onClick={() => { setShowAddForm(false); setFormState({}); setFormError(""); }} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">
                         Cancel
                       </button>
                     </div>
@@ -380,7 +386,6 @@ export default function WorkflowDetailPage() {
                 </div>
               )}
 
-              {/* Step list */}
               {workflow.steps.length === 0 && !showAddForm ? (
                 <div className="px-5 py-12 text-center text-gray-400 text-sm">
                   No steps yet — click "+ Add Step" to build your workflow
@@ -394,16 +399,11 @@ export default function WorkflowDetailPage() {
                           {idx + 1}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded mb-1">
-                            {s.type}
-                          </span>
+                          <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded mb-1">{s.type}</span>
                           <p className="text-sm text-gray-600 truncate">{stepSummary(s)}</p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => handleDeleteStep(idx)}
-                        className="shrink-0 px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded transition-colors"
-                      >
+                      <button onClick={() => handleDeleteStep(idx)} className="shrink-0 px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded transition-colors">
                         Delete
                       </button>
                     </div>
@@ -413,17 +413,16 @@ export default function WorkflowDetailPage() {
             </div>
           )}
 
-          {/* RUNS TAB */}
+          {/* ── RUNS TAB ── */}
           {activeTab === "runs" && (
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                 <span className="font-medium text-gray-900">Run History</span>
                 <button onClick={fetchRuns} className="text-xs text-blue-600 hover:underline">Refresh</button>
               </div>
-
               {runs.length === 0 ? (
                 <div className="px-5 py-12 text-center text-gray-400 text-sm">
-                  No runs yet — click "▶ Run Now" to execute this workflow
+                  No runs yet — go to "🧪 Test Trigger" tab to run your first test
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100">
@@ -446,8 +445,8 @@ export default function WorkflowDetailPage() {
                         </div>
                         <span className="text-xs text-gray-400 font-mono">{run.id.slice(0, 8)}...</span>
                       </div>
-                      {run.steps && run.steps.length > 0 && (
-                        <div className="space-y-1">
+                      {run.steps?.length > 0 && (
+                        <div className="space-y-1 mt-1">
                           {run.steps.map((step, i) => (
                             <div key={i} className="flex items-center gap-2 text-xs text-gray-500">
                               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${step.status === "success" ? "bg-green-400" : "bg-red-400"}`} />
@@ -461,6 +460,62 @@ export default function WorkflowDetailPage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── TEST TRIGGER TAB ── */}
+          {activeTab === "test" && (
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h3 className="font-medium text-gray-900">Test Trigger</h3>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Simulate a real trigger — paste the data your form/app would send, then fire it.
+                </p>
+              </div>
+
+              <div className="px-5 py-4 space-y-4">
+                {/* How it works box */}
+                <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-700">
+                  <p className="font-medium mb-1">How this works</p>
+                  <p>This sends the data below directly to your webhook URL. AutoMax will run all your steps, replacing <code className="font-mono font-bold">{"{{name}}"}</code>, <code className="font-mono font-bold">{"{{email}}"}</code>, <code className="font-mono font-bold">{"{{phone}}"}</code> etc. with the actual values.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Test data (JSON) — edit these values to match your real data
+                  </label>
+                  <textarea
+                    value={testPayload}
+                    onChange={(e) => setTestPayload(e.target.value)}
+                    rows={8}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                </div>
+
+                {testError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                    {testError}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleTestTrigger}
+                  disabled={testLoading}
+                  className="w-full py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-sm transition-colors"
+                >
+                  {testLoading ? "Running workflow..." : "🚀 Fire Test Trigger"}
+                </button>
+
+                {testResult && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+                    <p className="text-sm font-medium text-green-700 mb-2">✅ Workflow triggered successfully!</p>
+                    <p className="text-xs text-green-600">Check the Run History tab to see the full execution log.</p>
+                    <pre className="mt-2 text-xs text-gray-600 overflow-auto max-h-40">
+                      {JSON.stringify(testResult, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </>

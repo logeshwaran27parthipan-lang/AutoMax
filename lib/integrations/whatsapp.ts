@@ -1,10 +1,3 @@
-/**
- * WhatsApp integration helper (WAHA-style HTTP API).
- *
- * Exports sendWhatsAppMessage(to, message) -> Promise<{ success, result?, error? }>
- * This file is a thin integration layer that callers (actions) can use.
- */
-
 export async function sendWhatsAppMessage(
   to: string,
   message: string,
@@ -25,16 +18,25 @@ export async function sendWhatsAppMessage(
     );
   }
 
-  const url = `${baseUrl.replace(/\/$/, "")}/send`;
+  // Format phone number to WAHA chatId format
+  const chatId = to.includes("@c.us")
+    ? to
+    : `${to.replace(/\D/g, "")}@c.us`;
+
+  const url = `${baseUrl.replace(/\/$/, "")}/api/sendText`;
 
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        ...(apiKey ? { "X-Api-Key": apiKey } : {}),
       },
-      body: JSON.stringify({ to, message }),
+      body: JSON.stringify({
+        session: "default",
+        chatId,
+        text: message,
+      }),
     });
 
     let data: any = null;
@@ -47,7 +49,7 @@ export async function sendWhatsAppMessage(
     if (!res.ok) {
       return {
         success: false,
-        error: data?.error || `HTTP ${res.status}`,
+        error: data?.error || data?.message || `HTTP ${res.status}`,
         result: data,
       };
     }
