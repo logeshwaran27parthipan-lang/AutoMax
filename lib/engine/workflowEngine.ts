@@ -11,19 +11,38 @@ export async function processEvent(eventName: string, payload: any) {
 
   const workflows = await prisma.workflow.findMany();
 
-  const matchedWorkflows = workflows.filter((wf) => {
-    if (payload.workflowId && wf.id === payload.workflowId) {
-      return true;
-    }
-    const triggers = wf.triggers;
-    if (Array.isArray(triggers)) {
-      return triggers.some((t: any) => (t?.type || t) === eventName);
-    }
-    if (typeof triggers === "string") {
-      return triggers === eventName;
-    }
-    return false;
-  });
+const matchedWorkflows = workflows.filter((wf) => {
+  // Direct workflowId match (from webhook)
+  if (payload.workflowId && wf.id === payload.workflowId) {
+    return true;
+  }
+
+  const triggers = wf.triggers as any;
+  const triggerType = triggers?.type || triggers;
+
+  // String match (legacy)
+  if (typeof triggers === "string") {
+    return triggers === eventName;
+  }
+
+  // Event name matches trigger type
+  if (triggerType === eventName) return true;
+
+  // WhatsApp incoming message
+  if (eventName === "whatsapp_incoming" && triggerType === "whatsapp") {
+    const keyword = triggers?.keyword;
+    if (!keyword) return true; // no keyword = trigger on any message
+    const msg = (payload.message || payload.text || "").toLowerCase();
+    return msg.includes(keyword.toLowerCase());
+  }
+
+  // Schedule trigger
+  if (eventName === "schedule_tick" && triggerType === "schedule") {
+    return triggers?.cron === payload.cron;
+  }
+
+  return false;
+});
 
   console.log("[MATCHED WORKFLOWS]:", matchedWorkflows.length);
 
