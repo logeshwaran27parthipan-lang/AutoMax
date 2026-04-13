@@ -212,6 +212,7 @@ async function createWorkflow() {
         <option value="0 9 * * 1">Every Monday at 9:00 AM</option>
         <option value="0 9 1 * *">First day of every month</option>
         <option value="*/30 * * * *">Every 30 minutes</option>
+        <option value="* * * * *">Every minutes</option>
         <option value="0 * * * *">Every hour</option>
       </select>
     </div>
