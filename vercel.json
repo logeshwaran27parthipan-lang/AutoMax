@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "app/api/workflows/[id]/run/route.ts": { "maxDuration": 60 },
+    "app/api/whatsapp/send/route.ts": { "maxDuration": 60 },
+    "app/api/cron/route.ts": { "maxDuration": 60 }
+  },
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
