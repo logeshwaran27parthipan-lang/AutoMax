@@ -36,10 +36,12 @@ const matchedWorkflows = workflows.filter((wf) => {
     return msg.includes(keyword.toLowerCase());
   }
 
-  // Schedule trigger
-  if (eventName === "schedule_tick" && triggerType === "schedule") {
-    return triggers?.cron === payload.cron;
-  }
+
+// Schedule trigger — match by workflowId only (cron already verified in cron route)
+if (eventName === "schedule_tick" && triggerType === "schedule") {
+  if (payload.workflowId) return wf.id === payload.workflowId;
+  return triggers?.cron === payload.cron;
+}
 
   return false;
 });
