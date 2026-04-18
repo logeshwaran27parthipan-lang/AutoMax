@@ -3,6 +3,53 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
 
+export async function GET(req: NextRequest) {
+  try {
+    // Get auth token from cookie
+    const token = req.cookies.get("auth-token")?.value;
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify token
+    const tokenPayload = verifyToken(token);
+
+    if (!tokenPayload) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Find user's organization (OWNER role)
+    const membership = await prisma.organizationMember.findFirst({
+      where: {
+        userId: tokenPayload.userId,
+        role: "OWNER",
+      },
+      include: {
+        org: true,
+      },
+    });
+
+    if (!membership) {
+      return NextResponse.json(
+        { error: "Organization not found" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(
+      { orgName: membership.org.name, apiKey: membership.org.apiKey },
+      { status: 200 },
+    );
+  } catch (err: any) {
+    console.error("[API KEY GET ERROR]:", err);
+    return NextResponse.json(
+      { error: "Failed to fetch API key" },
+      { status: 500 },
+    );
+  }
+}
+
 export async function PATCH(req: NextRequest) {
   try {
     // Get auth token from cookie
