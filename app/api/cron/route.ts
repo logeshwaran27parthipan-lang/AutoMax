@@ -18,6 +18,24 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Cleanup stuck runs (running for more than 10 minutes)
+    const cutoff = new Date(Date.now() - 10 * 60 * 1000);
+    const cleanupResult = await prisma.workflowRun.updateMany({
+      where: {
+        status: "running",
+        startedAt: { lt: cutoff },
+      },
+      data: {
+        status: "failed",
+        finishedAt: new Date(),
+      },
+    });
+    if (cleanupResult.count > 0) {
+      console.log(
+        `[CRON CLEANUP] Marked ${cleanupResult.count} stuck run(s) as failed`,
+      );
+    }
+
     const now = new Date();
     const minute = now.getUTCMinutes();
     const hour = now.getUTCHours();
