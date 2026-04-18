@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { prisma } from "../../../../lib/prisma";
 import { hashPassword, generateToken } from "../../../../lib/auth";
 import { z } from "zod";
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
     if (existing) {
       return new Response(
         JSON.stringify({ error: "Email already registered" }),
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -26,17 +27,39 @@ export async function POST(req: Request) {
       data: { email, password: hashed, name },
     });
 
+    // Auto-create personal organization
+    const apiKey = "am_live_" + crypto.randomBytes(32).toString("hex");
+    const org = await prisma.organization.create({
+      data: {
+        name: user.name
+          ? `${user.name}'s Workspace`
+          : `${user.email}'s Workspace`,
+        apiKey,
+      },
+    });
+
+    // Create organization membership
+    await prisma.organizationMember.create({
+      data: {
+        orgId: org.id,
+        userId: user.id,
+        role: "OWNER",
+      },
+    });
+
     const token = generateToken(user.id);
 
     return new Response(
-      JSON.stringify({ user: { id: user.id, email: user.email, name: user.name } }),
+      JSON.stringify({
+        user: { id: user.id, email: user.email, name: user.name },
+      }),
       {
         status: 201,
         headers: {
           "Content-Type": "application/json",
           "Set-Cookie": `auth-token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`,
         },
-      }
+      },
     );
   } catch (err) {
     console.error(err);

@@ -20,6 +20,8 @@ model Workflow {
   createdAt   DateTime @default(now()) @map("created_at")
   userId      String   @map("user_id")
   user        User     @relation(fields: [userId], references: [id])
+  orgId       String?  @map("org_id")
+  org         Organization?  @relation(fields: [orgId], references: [id])
   runs        WorkflowRun[]
 
   @@map("workflows")
@@ -44,9 +46,11 @@ model User {
   workflows Workflow[]
   conversations Conversation[]
   workflowRuns  WorkflowRun[]
+  orgMemberships OrganizationMember[]
 
   @@map("users")
 }
+
 model Conversation {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
@@ -70,6 +74,8 @@ model WorkflowRun {
   finishedAt DateTime?        @map("finished_at")
   workflow   Workflow         @relation(fields: [workflowId], references: [id])
   user       User             @relation(fields: [userId], references: [id])
+  orgId      String?          @map("org_id")
+  org        Organization?    @relation(fields: [orgId], references: [id])
   steps      WorkflowRunStep[]
 
   @@map("workflow_runs")
@@ -88,4 +94,29 @@ model WorkflowRunStep {
   run         WorkflowRun @relation(fields: [runId], references: [id])
 
   @@map("workflow_run_steps")
+}
+
+model Organization {
+  id        String               @id @default(uuid())
+  name      String
+  apiKey    String               @unique
+  createdAt DateTime             @default(now()) @map("created_at")
+  members   OrganizationMember[]
+  workflows Workflow[]
+  runs      WorkflowRun[]
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id        String       @id @default(uuid())
+  orgId     String       @map("org_id")
+  userId    String       @map("user_id")
+  role      String       @default("OWNER")
+  createdAt DateTime     @default(now()) @map("created_at")
+  org       Organization @relation(fields: [orgId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
+
+  @@unique([orgId, userId])
+  @@map("organization_members")
 }
