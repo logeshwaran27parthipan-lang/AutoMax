@@ -11,40 +11,38 @@ export async function processEvent(eventName: string, payload: any) {
 
   const workflows = await prisma.workflow.findMany();
 
-const matchedWorkflows = workflows.filter((wf) => {
-  // Direct workflowId match (from webhook)
-  if (payload.workflowId && wf.id === payload.workflowId) {
-    return true;
-  }
+  const matchedWorkflows = workflows.filter((wf) => {
+    // Direct workflowId match for webhook and manual events only
+    if (payload.workflowId && wf.id === payload.workflowId) {
+      if (eventName === "webhook" || eventName === "manual") return true;
+    }
 
-  const triggers = wf.triggers as any;
-  const triggerType = triggers?.type || triggers;
+    const triggers = wf.triggers as any;
+    const triggerType = triggers?.type || triggers;
 
-  // String match (legacy)
-  if (typeof triggers === "string") {
-    return triggers === eventName;
-  }
+    // String match (legacy)
+    if (typeof triggers === "string") {
+      return triggers === eventName;
+    }
 
-  // Event name matches trigger type
-  if (triggerType === eventName) return true;
+    // Schedule trigger — cron route already verified timing, just match by workflowId
+    if (eventName === "schedule" && triggerType === "schedule") {
+      return payload.workflowId ? wf.id === payload.workflowId : false;
+    }
 
-  // WhatsApp incoming message
-  if (eventName === "whatsapp_incoming" && triggerType === "whatsapp") {
-    const keyword = triggers?.keyword;
-    if (!keyword) return true; // no keyword = trigger on any message
-    const msg = (payload.message || payload.text || "").toLowerCase();
-    return msg.includes(keyword.toLowerCase());
-  }
+    // WhatsApp incoming message
+    if (eventName === "whatsapp_incoming" && triggerType === "whatsapp") {
+      const keyword = triggers?.keyword;
+      if (!keyword) return true;
+      const msg = (payload.message || payload.text || "").toLowerCase();
+      return msg.includes(keyword.toLowerCase());
+    }
 
+    // Event name matches trigger type (catch-all for manual, webhook, etc.)
+    if (triggerType === eventName) return true;
 
-// Schedule trigger — match by workflowId only (cron already verified in cron route)
-if (eventName === "schedule_tick" && triggerType === "schedule") {
-  if (payload.workflowId) return wf.id === payload.workflowId;
-  return triggers?.cron === payload.cron;
-}
-
-  return false;
-});
+    return false;
+  });
 
   console.log("[MATCHED WORKFLOWS]:", matchedWorkflows.length);
 
@@ -73,7 +71,7 @@ if (eventName === "schedule_tick" && triggerType === "schedule") {
       workflow.id,
       userId,
       eventName,
-      enrichedPayload
+      enrichedPayload,
     );
 
     let steps: any[] = [];
@@ -120,21 +118,34 @@ ${interpolate(step.prompt, enrichedPayload)}`;
               aiResponse = JSON.parse(aiResponse);
             } catch {
               console.log("❌ Invalid JSON from AI");
-              await logStep(runId, i, "ai_decision", "failed",
-                step, null, "Invalid JSON from AI");
+              await logStep(
+                runId,
+                i,
+                "ai_decision",
+                "failed",
+                step,
+                null,
+                "Invalid JSON from AI",
+              );
               continue;
             }
           }
 
           if (!aiResponse.steps || !Array.isArray(aiResponse.steps)) {
             console.log("❌ No steps returned by AI");
-            await logStep(runId, i, "ai_decision", "failed",
-              step, null, "No steps returned");
+            await logStep(
+              runId,
+              i,
+              "ai_decision",
+              "failed",
+              step,
+              null,
+              "No steps returned",
+            );
             continue;
           }
 
-          await logStep(runId, i, "ai_decision", "success",
-            step, aiResponse);
+          await logStep(runId, i, "ai_decision", "success", step, aiResponse);
 
           for (const aiStep of aiResponse.steps) {
             const action = actions[aiStep.action as keyof typeof actions];
@@ -152,21 +163,40 @@ ${interpolate(step.prompt, enrichedPayload)}`;
                 ...aiStep.params,
                 ...enrichedPayload,
               });
-              await logStep(runId, i, aiStep.action, "success",
-                aiStep.params, result);
+              await logStep(
+                runId,
+                i,
+                aiStep.action,
+                "success",
+                aiStep.params,
+                result,
+              );
             } catch (err: any) {
               console.log("❌ Action error:", err?.message || err);
-              await logStep(runId, i, aiStep.action, "failed",
-                aiStep.params, null, err?.message || String(err));
+              await logStep(
+                runId,
+                i,
+                aiStep.action,
+                "failed",
+                aiStep.params,
+                null,
+                err?.message || String(err),
+              );
             }
           }
 
           await saveMessage(userId, JSON.stringify(aiResponse), "ai");
-
         } catch (err: any) {
           console.log("AI step error:", err);
-          await logStep(runId, i, "ai_decision", "failed",
-            step, null, err?.message || String(err));
+          await logStep(
+            runId,
+            i,
+            "ai_decision",
+            "failed",
+            step,
+            null,
+            err?.message || String(err),
+          );
           runFailed = true;
         }
 
@@ -192,9 +222,12 @@ ${interpolate(step.prompt, enrichedPayload)}`;
         console.log("[CONDITION]:", conditionPassed);
 
         await logStep(
-          runId, i, "condition",
+          runId,
+          i,
+          "condition",
           conditionPassed ? "success" : "skipped",
-          step, { conditionPassed }
+          step,
+          { conditionPassed },
         );
 
         if (!conditionPassed) {
@@ -210,49 +243,63 @@ ${interpolate(step.prompt, enrichedPayload)}`;
       // ⚙️ NORMAL ACTION STEP
       // =============================
       // ⚙️ NORMAL ACTION STEP
-const action = actions[step.type as keyof typeof actions];
+      const action = actions[step.type as keyof typeof actions];
 
-if (!action) {
-  console.log("No action:", step.type);
-  await logStep(runId, i, step.type, "failed",
-    step, null, `Unknown action: ${step.type}`);
-  continue;
-}
+      if (!action) {
+        console.log("No action:", step.type);
+        await logStep(
+          runId,
+          i,
+          step.type,
+          "failed",
+          step,
+          null,
+          `Unknown action: ${step.type}`,
+        );
+        continue;
+      }
 
-try {
-  // Interpolate ALL step fields before passing to action
-  const interpolatedStep: any = {};
-  for (const [key, value] of Object.entries(step)) {
-    if (typeof value === "string") {
-      interpolatedStep[key] = interpolate(value, enrichedPayload);
-    } else if (Array.isArray(value)) {
-      interpolatedStep[key] = value.map((item) =>
-        Array.isArray(item)
-          ? item.map((v) =>
-              typeof v === "string" ? interpolate(v, enrichedPayload) : v
-            )
-          : typeof item === "string"
-          ? interpolate(item, enrichedPayload)
-          : item
-      );
-    } else {
-      interpolatedStep[key] = value;
-    }
-  }
+      try {
+        // Interpolate ALL step fields before passing to action
+        const interpolatedStep: any = {};
+        for (const [key, value] of Object.entries(step)) {
+          if (typeof value === "string") {
+            interpolatedStep[key] = interpolate(value, enrichedPayload);
+          } else if (Array.isArray(value)) {
+            interpolatedStep[key] = value.map((item) =>
+              Array.isArray(item)
+                ? item.map((v) =>
+                    typeof v === "string" ? interpolate(v, enrichedPayload) : v,
+                  )
+                : typeof item === "string"
+                  ? interpolate(item, enrichedPayload)
+                  : item,
+            );
+          } else {
+            interpolatedStep[key] = value;
+          }
+        }
 
-  console.log("[INTERPOLATED STEP]:", interpolatedStep);
+        console.log("[INTERPOLATED STEP]:", interpolatedStep);
 
-  const result = await action({
-    ...interpolatedStep,
-    ...enrichedPayload,
-  });
-  await logStep(runId, i, step.type, "success", step, result);
-} catch (err: any) {
-  console.log("Step error:", err);
-  await logStep(runId, i, step.type, "failed",
-    step, null, err?.message || String(err));
-  runFailed = true;
-}
+        const result = await action({
+          ...interpolatedStep,
+          ...enrichedPayload,
+        });
+        await logStep(runId, i, step.type, "success", step, result);
+      } catch (err: any) {
+        console.log("Step error:", err);
+        await logStep(
+          runId,
+          i,
+          step.type,
+          "failed",
+          step,
+          null,
+          err?.message || String(err),
+        );
+        runFailed = true;
+      }
     }
 
     // Finish run
