@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { emitEvent } from "@/lib/events/eventBus";
+import { enqueueWorkflow } from "@/lib/queue/queueClient";
 
 // GitHub Copilot: Add a safeguard to this cron route.
 // Before firing any scheduled workflow, check that:
@@ -59,13 +59,7 @@ export async function GET(req: NextRequest) {
         }
 
         console.log(`[CRON] Firing workflow: ${wf.name} (${wf.id})`);
-        await emitEvent("schedule_tick", {
-          cron,
-          workflowId: wf.id,
-          userId: wf.userId,
-          scheduledAt: now.toISOString(),
-          message: `Scheduled run at ${now.toISOString()}`,
-        });
+        await enqueueWorkflow(wf.id, { userId: wf.userId });
         fired++;
       }
     }
