@@ -1,13 +1,16 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 /**
- * Simple email integration helper.
- * Exports a single function `sendEmail(to, subject, body)` which reads SMTP
- * credentials from environment variables `GMAIL_SMTP_USER` and `GMAIL_SMTP_PASS`.
+ * Simple email integration helper using Resend.
+ * Exports a single function `sendEmail(to, subject, body)` which reads the
+ * Resend API key from environment variable `RESEND_API_KEY`.
  *
  * This module intentionally contains no business/workflow logic — callers
  * should implement retries, logging, or persistence as needed.
  */
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 export async function sendEmail(
   to: string,
   subject: string,
@@ -23,30 +26,14 @@ export async function sendEmail(
     throw new Error('sendEmail: "body" must be a string');
   }
 
-  const smtpUser = process.env.GMAIL_SMTP_USER;
-  const smtpPass = process.env.GMAIL_SMTP_PASS;
-
-  if (!smtpUser || !smtpPass) {
-    throw new Error(
-      "sendEmail: missing SMTP credentials (GMAIL_SMTP_USER/GMAIL_SMTP_PASS)",
-    );
-  }
-
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    auth: { user: smtpUser, pass: smtpPass },
-  });
-
   try {
-    const result = await transporter.sendMail({
-      from: smtpUser,
+    const data = await resend.emails.send({
+      from: "onboarding@resend.dev",
       to,
       subject,
       text: body,
     });
-    return { success: true, result };
+    return { success: true, result: data };
   } catch (err: any) {
     return { success: false, error: String(err) };
   }
