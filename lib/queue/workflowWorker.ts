@@ -1,5 +1,5 @@
 import { Worker } from "bullmq";
-import { processEvent } from "@/lib/engine/workflowEngine";
+import { processEvent } from "../engine/workflowEngine";
 
 // Parse Upstash Redis URL format: rediss://default:PASSWORD@HOST:PORT
 function parseRedisUrl(url: string) {
@@ -23,6 +23,8 @@ if (!upstashUrl) {
 }
 
 const { host, port, password } = parseRedisUrl(upstashUrl);
+
+console.log("AutoMax worker starting...");
 
 // Create BullMQ worker
 export const workflowWorker = new Worker(
