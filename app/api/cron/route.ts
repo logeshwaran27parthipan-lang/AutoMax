@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { emitEvent } from "@/lib/events/eventBus";
 
+// GitHub Copilot: Add a safeguard to this cron route.
+// Before firing any scheduled workflow, check that:
+// 1. The workflow has isActive === true (add this field to Prisma schema if missing)
+// 2. Log a warning and skip silently if isActive is false
+// 3. The existing matchesCron() logic stays unchanged
+// Use the existing Prisma client from @/lib/prisma
+
 export async function GET(req: NextRequest) {
   try {
     const secret = req.headers.get("x-cron-secret");
@@ -25,6 +32,14 @@ export async function GET(req: NextRequest) {
     let fired = 0;
 
     for (const wf of workflows) {
+      // Safeguard: skip if workflow is not active
+      if (!wf.isActive) {
+        console.warn(
+          `[CRON SKIP] Workflow "${wf.name}" (${wf.id}) is inactive`,
+        );
+        continue;
+      }
+
       const triggers = wf.triggers as any;
       if (triggers?.type !== "schedule") continue;
 
@@ -61,7 +76,7 @@ function matchesCron(
   hour: number,
   day: number,
   month: number,
-  weekday: number
+  weekday: number,
 ): boolean {
   try {
     const parts = cron.trim().split(/\s+/);

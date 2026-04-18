@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
 
-
 type WorkflowRun = {
   startedAt: string;
   status: string;
@@ -58,45 +57,44 @@ export default function WorkflowsPage() {
       const res = await axios.get("/api/workflows");
       setWorkflows(res.data);
     } catch {
-      // silently fail — user sees empty state
+      // silently fail
     } finally {
       setLoading(false);
     }
   }
-  
-async function createWorkflow() {
-  if (!name.trim()) return setError("Name is required");
-  setCreating(true);
-  setError("");
-  try {
-    let triggerConfig: any = { type: trigger };
-    if (trigger === "schedule") {
-      triggerConfig.cron = schedulePreset;
-      triggerConfig.timezone = "Asia/Kolkata";
-    }
-    if (trigger === "whatsapp" && waKeyword.trim()) {
-      triggerConfig.keyword = waKeyword.trim().toLowerCase();
-    }
 
-    await axios.post("/api/workflows", {
-      name: name.trim(),
-      description: description.trim(),
-      triggers: triggerConfig,
-      steps: [],
-    });
-    setName("");
-    setDescription("");
-    setTrigger("webhook");
-    setSchedulePreset("0 9 * * *");
-    setWaKeyword("");
-    setShowForm(false);
-    fetchWorkflows();
-  } catch {
-    setError("Failed to create workflow");
-  } finally {
-    setCreating(false);
+  async function createWorkflow() {
+    if (!name.trim()) return setError("Name is required");
+    setCreating(true);
+    setError("");
+    try {
+      let triggerConfig: any = { type: trigger };
+      if (trigger === "schedule") {
+        triggerConfig.cron = schedulePreset;
+        triggerConfig.timezone = "Asia/Kolkata";
+      }
+      if (trigger === "whatsapp" && waKeyword.trim()) {
+        triggerConfig.keyword = waKeyword.trim().toLowerCase();
+      }
+      await axios.post("/api/workflows", {
+        name: name.trim(),
+        description: description.trim(),
+        triggers: triggerConfig,
+        steps: [],
+      });
+      setName("");
+      setDescription("");
+      setTrigger("webhook");
+      setSchedulePreset("0 9 * * *");
+      setWaKeyword("");
+      setShowForm(false);
+      fetchWorkflows();
+    } catch {
+      setError("Failed to create workflow");
+    } finally {
+      setCreating(false);
+    }
   }
-}
 
   async function deleteWorkflow(id: string) {
     if (!confirm("Delete this workflow and all its run history?")) return;
@@ -165,94 +163,96 @@ async function createWorkflow() {
                 placeholder="What does this workflow do?"
               />
             </div>
+
             {/* Trigger Type Selector */}
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-2">
-    How should this workflow start?
-  </label>
-  <div className="grid grid-cols-2 gap-2">
-    {[
-      { value: "webhook", icon: "🔗", label: "Webhook", desc: "Triggered by forms, CRMs, or any app" },
-      { value: "schedule", icon: "⏰", label: "Schedule", desc: "Run automatically on a schedule" },
-      { value: "whatsapp", icon: "💬", label: "WhatsApp", desc: "When someone messages you on WhatsApp" },
-      { value: "manual", icon: "▶️", label: "Manual", desc: "Only when you click Run Now" },
-    ].map((t) => (
-      <button
-        key={t.value}
-        type="button"
-        onClick={() => setTrigger(t.value)}
-        className={`p-3 rounded-lg border-2 text-left transition-all ${
-          trigger === t.value
-            ? "border-blue-500 bg-blue-50"
-            : "border-gray-200 hover:border-gray-300 bg-white"
-        }`}
-      >
-        <div className="flex items-center gap-2 mb-1">
-          <span>{t.icon}</span>
-          <span className="text-sm font-medium text-gray-800">{t.label}</span>
-        </div>
-        <p className="text-xs text-gray-500">{t.desc}</p>
-      </button>
-    ))}
-  </div>
-</div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                How should this workflow start?
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: "webhook", icon: "🔗", label: "Webhook", desc: "Triggered by forms, CRMs, or any app" },
+                  { value: "schedule", icon: "⏰", label: "Schedule", desc: "Run automatically on a schedule" },
+                  { value: "whatsapp", icon: "💬", label: "WhatsApp", desc: "When someone messages you on WhatsApp" },
+                  { value: "manual", icon: "▶️", label: "Manual", desc: "Only when you click Run Now" },
+                ].map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setTrigger(t.value)}
+                    className={`p-3 rounded-lg border-2 text-left transition-all ${
+                      trigger === t.value
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-gray-300 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span>{t.icon}</span>
+                      <span className="text-sm font-medium text-gray-800">{t.label}</span>
+                    </div>
+                    <p className="text-xs text-gray-500">{t.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-{/* Schedule config — only show if schedule selected */}
-{trigger === "schedule" && (
-  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
-    <p className="text-sm font-medium text-yellow-800">⏰ Schedule Settings</p>
-    <div>
-      <label className="block text-xs font-medium text-gray-600 mb-1">Run frequency</label>
-      <select
-        value={schedulePreset}
-        onChange={(e) => setSchedulePreset(e.target.value)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="0 9 * * *">Every day at 9:00 AM</option>
-        <option value="0 9 * * 1">Every Monday at 9:00 AM</option>
-        <option value="0 9 1 * *">First day of every month</option>
-        <option value="*/30 * * * *">Every 30 minutes</option>
-        <option value="* * * * *">Every minutes</option>
-        <option value="0 * * * *">Every hour</option>
-      </select>
-    </div>
-  </div>
-)}
+            {/* Schedule config */}
+            {trigger === "schedule" && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
+                <p className="text-sm font-medium text-yellow-800">⏰ Schedule Settings</p>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Run frequency</label>
+                  <select
+                    value={schedulePreset}
+                    onChange={(e) => setSchedulePreset(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="0 9 * * *">Every day at 9:00 AM</option>
+                    <option value="0 9 * * 1">Every Monday at 9:00 AM</option>
+                    <option value="0 9 1 * *">First day of every month</option>
+                    <option value="*/30 * * * *">Every 30 minutes</option>
+                    <option value="* * * * *">Every minute</option>
+                    <option value="0 * * * *">Every hour</option>
+                  </select>
+                </div>
+              </div>
+            )}
 
-{/* WhatsApp trigger config */}
-{trigger === "whatsapp" && (
-  <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
-    <p className="text-sm font-medium text-green-800">💬 WhatsApp Trigger Settings</p>
-    <div>
-      <label className="block text-xs font-medium text-gray-600 mb-1">
-        Trigger keyword <span className="text-gray-400">(optional — leave empty to trigger on any message)</span>
-      </label>
-      <input
-        value={waKeyword}
-        onChange={(e) => setWaKeyword(e.target.value)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        placeholder="e.g. hello, order, help"
-      />
-    </div>
-    <p className="text-xs text-gray-500">
-      Make sure WAHA webhook is pointed to:{" "}
-      <code className="bg-white px-1 rounded border">
-        {typeof window !== "undefined" ? `${window.location.origin}/api/whatsapp/incoming` : "/api/whatsapp/incoming"}
-      </code>
-    </p>
-  </div>
-)}
+            {/* WhatsApp config */}
+            {trigger === "whatsapp" && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                <p className="text-sm font-medium text-green-800">💬 WhatsApp Trigger Settings</p>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Trigger keyword <span className="text-gray-400">(optional — leave empty to trigger on any message)</span>
+                  </label>
+                  <input
+                    value={waKeyword}
+                    onChange={(e) => setWaKeyword(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g. hello, order, help"
+                  />
+                </div>
+                <p className="text-xs text-gray-500">
+                  Make sure WAHA webhook is pointed to:{" "}
+                  <code className="bg-white px-1 rounded border">
+                    {typeof window !== "undefined" ? `${window.location.origin}/api/whatsapp/incoming` : "/api/whatsapp/incoming"}
+                  </code>
+                </p>
+              </div>
+            )}
 
-{/* Webhook info */}
-{trigger === "webhook" && (
-  <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
-    <p className="text-sm font-medium text-blue-800 mb-1">🔗 Webhook Trigger</p>
-    <p className="text-xs text-gray-600">
-      After creating, you'll get a unique webhook URL to paste into any form builder
-      (Tally, Typeform, Google Forms) or CRM system.
-    </p>
-  </div>
-)}
+            {/* Webhook info */}
+            {trigger === "webhook" && (
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                <p className="text-sm font-medium text-blue-800 mb-1">🔗 Webhook Trigger</p>
+                <p className="text-xs text-gray-600">
+                  After creating, you'll get a unique webhook URL to paste into any form builder
+                  (Tally, Typeform, Google Forms) or CRM system.
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-2 pt-1">
               <button
                 onClick={createWorkflow}
@@ -300,14 +300,16 @@ async function createWorkflow() {
         <div className="space-y-3">
           {workflows.map((w) => {
             const stepCount = Array.isArray(w.steps) ? w.steps.length : 0;
-            const triggerLabel = typeof w.triggers === "string" ? w.triggers : "webhook";
+            const triggerLabel = typeof w.triggers === "string" ? w.triggers : (w.triggers as any)?.type || "webhook";
             const lastStatus = w.lastRun ? statusColor(w.lastRun.status) : null;
 
             return (
               <div key={w.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between gap-4">
+
+                  {/* Left content */}
                   <div className="flex-1 min-w-0">
-                    {/* Name + last run status */}
+                    {/* Name + status */}
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="text-base font-semibold text-gray-900">{w.name}</h3>
                       {lastStatus ? (
@@ -341,20 +343,28 @@ async function createWorkflow() {
                       )}
                     </div>
 
-                    {/* Webhook URL */}
-                    <div className="flex items-center gap-2">
-                      <code className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-gray-500 flex-1 truncate">
-                        {typeof window !== "undefined"
-                          ? `${window.location.origin}/api/webhook/${w.id}`
-                          : `/api/webhook/${w.id}`}
-                      </code>
-                      <button
-                        onClick={() => copyWebhookUrl(w.id)}
-                        className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-200 whitespace-nowrap transition-colors"
-                      >
-                        {copiedId === w.id ? "✅ Copied" : "Copy URL"}
-                      </button>
-                    </div>
+                    {/* Trigger info row */}
+                    {(w.triggers as any)?.type === "webhook" || typeof w.triggers === "string" ? (
+                      <div className="flex items-center gap-2">
+                        <code className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-gray-500 flex-1 truncate">
+                          {typeof window !== "undefined"
+                            ? `${window.location.origin}/api/webhook/${w.id}`
+                            : `/api/webhook/${w.id}`}
+                        </code>
+                        <button
+                          onClick={() => copyWebhookUrl(w.id)}
+                          className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-200 whitespace-nowrap transition-colors"
+                        >
+                          {copiedId === w.id ? "✅ Copied" : "Copy URL"}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5">
+                        {(w.triggers as any)?.type === "schedule" && `⏰ Cron: ${(w.triggers as any)?.cron}`}
+                        {(w.triggers as any)?.type === "whatsapp" && `💬 Keyword: ${(w.triggers as any)?.keyword || "any message"}`}
+                        {(w.triggers as any)?.type === "manual" && `🖐 Manual — click Run Now`}
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions */}
@@ -373,6 +383,7 @@ async function createWorkflow() {
                       {deletingId === w.id ? "..." : "Delete"}
                     </button>
                   </div>
+
                 </div>
               </div>
             );

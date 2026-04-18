@@ -7,12 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// GitHub Copilot: Add a boolean field `isActive` with a default of true
+// to the Workflow model. This lets users disable workflows without deleting them.
+// Keep all existing fields unchanged.
 model Workflow {
   id          String   @id @default(uuid())
   name        String
   description String?
   triggers    Json?
   steps       Json?
+  isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   userId      String   @map("user_id")
   user        User     @relation(fields: [userId], references: [id])
