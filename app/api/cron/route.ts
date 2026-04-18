@@ -47,6 +47,17 @@ export async function GET(req: NextRequest) {
       if (!cron) continue;
 
       if (matchesCron(cron, minute, hour, day, month, weekday)) {
+        // Check if workflow already has a running instance
+        const activeRun = await prisma.workflowRun.findFirst({
+          where: { workflowId: wf.id, status: "running" },
+        });
+        if (activeRun) {
+          console.warn(
+            `[CRON SKIP] Workflow "${wf.name}" already has a running instance — skipping`,
+          );
+          continue;
+        }
+
         console.log(`[CRON] Firing workflow: ${wf.name} (${wf.id})`);
         await emitEvent("schedule_tick", {
           cron,
