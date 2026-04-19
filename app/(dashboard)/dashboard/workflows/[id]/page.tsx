@@ -81,11 +81,30 @@ function cronHumanLabel(cron: string): string {
 }
 
 const HINT = (
-  <p className="text-xs text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mt-1">
-    💡 Use <code className="font-mono font-bold">{"{{name}}"}</code>,{" "}
-    <code className="font-mono font-bold">{"{{email}}"}</code>,{" "}
-    <code className="font-mono font-bold">{"{{phone}}"}</code> — AutoMax fills
-    these from the trigger data automatically.
+  <p
+    style={{
+      fontSize: 12,
+      color: "#1D4ED8",
+      background: "#EFF6FF",
+      border: "1px solid #DBEAFE",
+      borderRadius: 8,
+      padding: "8px 12px",
+      marginTop: 4,
+    }}
+  >
+    💡 Use{" "}
+    <code style={{ fontFamily: "monospace", fontWeight: "bold" }}>
+      {"{{name}}"}
+    </code>
+    ,{" "}
+    <code style={{ fontFamily: "monospace", fontWeight: "bold" }}>
+      {"{{email}}"}
+    </code>
+    ,{" "}
+    <code style={{ fontFamily: "monospace", fontWeight: "bold" }}>
+      {"{{phone}}"}
+    </code>{" "}
+    — AutoMax fills these from the trigger data automatically.
   </p>
 );
 
@@ -105,11 +124,29 @@ function StepFields({
         <>
           {HINT}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#6B7280",
+                marginBottom: 4,
+              }}
+            >
               To (email)
             </label>
             <input
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#FFFFFF",
+                color: "#1A1A2E",
+                fontFamily: "Inter, sans-serif",
+              }}
               placeholder="{{email}} or fixed@email.com"
               value={formState.to || ""}
               onChange={(e) =>
@@ -118,11 +155,29 @@ function StepFields({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#6B7280",
+                marginBottom: 4,
+              }}
+            >
               Subject
             </label>
             <input
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#FFFFFF",
+                color: "#1A1A2E",
+                fontFamily: "Inter, sans-serif",
+              }}
               placeholder="Hello {{name}}!"
               value={formState.subject || ""}
               onChange={(e) =>
@@ -131,11 +186,30 @@ function StepFields({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#6B7280",
+                marginBottom: 4,
+              }}
+            >
               Body
             </label>
             <textarea
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#FFFFFF",
+                color: "#1A1A2E",
+                fontFamily: "Inter, sans-serif",
+                resize: "none",
+              }}
               rows={3}
               placeholder="Hi {{name}}, thanks for reaching out!"
               value={formState.body || ""}
@@ -150,11 +224,29 @@ function StepFields({
         <>
           {HINT}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#6B7280",
+                marginBottom: 4,
+              }}
+            >
               Phone number
             </label>
             <input
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#FFFFFF",
+                color: "#1A1A2E",
+                fontFamily: "Inter, sans-serif",
+              }}
               placeholder="{{phone}} or +91XXXXXXXXXX"
               value={formState.to || ""}
               onChange={(e) =>
@@ -163,11 +255,30 @@ function StepFields({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#6B7280",
+                marginBottom: 4,
+              }}
+            >
               Message
             </label>
             <textarea
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#FFFFFF",
+                color: "#1A1A2E",
+                fontFamily: "Inter, sans-serif",
+                resize: "none",
+              }}
               rows={3}
               placeholder="Hi {{name}}! Thanks for contacting us."
               value={formState.message || ""}
@@ -182,11 +293,30 @@ function StepFields({
         <>
           {HINT}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#6B7280",
+                marginBottom: 4,
+              }}
+            >
               Prompt
             </label>
             <textarea
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#FFFFFF",
+                color: "#1A1A2E",
+                fontFamily: "Inter, sans-serif",
+                resize: "none",
+              }}
               rows={4}
               placeholder="The customer {{name}} sent: {{message}}. Decide whether to send_email or send_whatsapp."
               value={formState.prompt || ""}
@@ -201,11 +331,29 @@ function StepFields({
         <>
           {HINT}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#6B7280",
+                marginBottom: 4,
+              }}
+            >
               Spreadsheet ID
             </label>
             <input
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#FFFFFF",
+                color: "#1A1A2E",
+                fontFamily: "Inter, sans-serif",
+              }}
               placeholder="From your Google Sheets URL"
               value={formState.spreadsheetId || ""}
               onChange={(e) =>
@@ -214,11 +362,29 @@ function StepFields({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#6B7280",
+                marginBottom: 4,
+              }}
+            >
               Range
             </label>
             <input
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#FFFFFF",
+                color: "#1A1A2E",
+                fontFamily: "Inter, sans-serif",
+              }}
               placeholder="Sheet1!A1:Z100"
               value={formState.range || ""}
               onChange={(e) =>
@@ -228,11 +394,30 @@ function StepFields({
           </div>
           {stepType === "sheets_append" && (
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "#6B7280",
+                  marginBottom: 4,
+                }}
+              >
                 Values (JSON)
               </label>
               <textarea
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono resize-none"
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #E5E7EB",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  outline: "none",
+                  background: "#FFFFFF",
+                  color: "#1A1A2E",
+                  fontFamily: "monospace",
+                  resize: "none",
+                }}
                 rows={2}
                 placeholder='[["{{name}}","{{email}}","{{phone}}"]]'
                 value={formState.values || ""}
@@ -301,16 +486,34 @@ function TriggerEditForm({
   }
 
   return (
-    <div className="space-y-3">
-      {error && <div className="text-red-600 text-sm">{error}</div>}
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {error && <div style={{ color: "#B91C1C", fontSize: 14 }}>{error}</div>}
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">
+        <label
+          style={{
+            display: "block",
+            fontSize: 12,
+            fontWeight: 500,
+            color: "#6B7280",
+            marginBottom: 4,
+          }}
+        >
           Trigger type
         </label>
         <select
           value={triggerType}
           onChange={(e) => setTriggerType(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            border: "1px solid #E5E7EB",
+            borderRadius: 8,
+            fontSize: 14,
+            outline: "none",
+            background: "#FFFFFF",
+            color: "#1A1A2E",
+            fontFamily: "Inter, sans-serif",
+          }}
         >
           {TRIGGER_TYPES.map((t) => (
             <option key={t.value} value={t.value}>
@@ -323,13 +526,31 @@ function TriggerEditForm({
       {triggerType === "schedule" && (
         <>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#6B7280",
+                marginBottom: 4,
+              }}
+            >
               Schedule
             </label>
             <select
               value={cronPreset}
               onChange={(e) => setCronPreset(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#FFFFFF",
+                color: "#1A1A2E",
+                fontFamily: "Inter, sans-serif",
+              }}
             >
               {CRON_PRESETS.map((p) => (
                 <option key={p.value} value={p.value}>
@@ -340,26 +561,62 @@ function TriggerEditForm({
           </div>
           {cronPreset === "custom" && (
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "#6B7280",
+                  marginBottom: 4,
+                }}
+              >
                 Custom cron expression
               </label>
               <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #E5E7EB",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  outline: "none",
+                  background: "#FFFFFF",
+                  color: "#1A1A2E",
+                  fontFamily: "monospace",
+                }}
                 placeholder="0 9 * * 1-5"
                 value={customCron}
                 onChange={(e) => setCustomCron(e.target.value)}
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}>
                 Format: minute hour day month weekday
               </p>
             </div>
           )}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#6B7280",
+                marginBottom: 4,
+              }}
+            >
               Timezone
             </label>
             <input
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#FFFFFF",
+                color: "#1A1A2E",
+                fontFamily: "Inter, sans-serif",
+              }}
               placeholder="Asia/Kolkata"
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
@@ -370,46 +627,98 @@ function TriggerEditForm({
 
       {triggerType === "whatsapp" && (
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">
+          <label
+            style={{
+              display: "block",
+              fontSize: 12,
+              fontWeight: 500,
+              color: "#6B7280",
+              marginBottom: 4,
+            }}
+          >
             Keyword (optional)
           </label>
           <input
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              border: "1px solid #E5E7EB",
+              borderRadius: 8,
+              fontSize: 14,
+              outline: "none",
+              background: "#FFFFFF",
+              color: "#1A1A2E",
+              fontFamily: "Inter, sans-serif",
+            }}
             placeholder="e.g. hello, order, help"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
-          <p className="text-xs text-gray-400 mt-1">
+          <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}>
             Leave blank to fire on any incoming WhatsApp message
           </p>
         </div>
       )}
 
       {triggerType === "webhook" && (
-        <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+        <p
+          style={{
+            fontSize: 12,
+            color: "#6B7280",
+            background: "#F9FAFB",
+            borderRadius: 8,
+            padding: "12px 16px",
+          }}
+        >
           Webhook trigger — your workflow fires when a POST request hits its
           unique URL.
         </p>
       )}
 
       {triggerType === "manual" && (
-        <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+        <p
+          style={{
+            fontSize: 12,
+            color: "#6B7280",
+            background: "#F9FAFB",
+            borderRadius: 8,
+            padding: "12px 16px",
+          }}
+        >
           Manual trigger — only fires when you click "Run Now" from the
           dashboard.
         </p>
       )}
 
-      <div className="flex gap-2 pt-1">
+      <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 font-medium"
+          style={{
+            padding: "8px 16px",
+            background: "#2563EB",
+            color: "#FFFFFF",
+            border: "none",
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 500,
+            cursor: "pointer",
+            opacity: saving ? 0.5 : 1,
+          }}
         >
           {saving ? "Saving..." : "Save Trigger"}
         </button>
         <button
           onClick={onCancel}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
+          style={{
+            padding: "8px 16px",
+            background: "#F3F4F6",
+            color: "#374151",
+            border: "none",
+            borderRadius: 8,
+            fontSize: 14,
+            cursor: "pointer",
+          }}
         >
           Cancel
         </button>
@@ -722,31 +1031,89 @@ export default function WorkflowDetailPage() {
     (typeof workflow?.triggers === "string" ? workflow.triggers : "webhook");
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div style={{ maxWidth: 896, margin: "0 auto", padding: "32px 16px" }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 24,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
           <button
             onClick={() => router.push("/dashboard/workflows")}
-            className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm transition-colors shrink-0"
+            style={{
+              padding: "6px 12px",
+              background: "#F3F4F6",
+              color: "#6B7280",
+              border: "none",
+              borderRadius: 8,
+              fontSize: 14,
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
           >
             ← Back
           </button>
           {workflow && !editingMeta && (
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="min-w-0">
-                <h1 className="text-xl font-bold text-gray-900 truncate">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                minWidth: 0,
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <h1
+                  style={{
+                    fontSize: 20,
+                    fontWeight: "bold",
+                    color: "#1A1A2E",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   {workflow.name}
                 </h1>
                 {workflow.description && (
-                  <p className="text-sm text-gray-500 truncate">
+                  <p
+                    style={{
+                      fontSize: 14,
+                      color: "#6B7280",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {workflow.description}
                   </p>
                 )}
               </div>
               <button
                 onClick={startEditMeta}
-                className="px-2 py-1 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
+                style={{
+                  padding: "4px 8px",
+                  fontSize: 12,
+                  color: "#9CA3AF",
+                  background: "transparent",
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  flexShrink: 0,
+                  transition: "all 0.2s",
+                }}
                 title="Edit name & description"
               >
                 ✏️ Edit
@@ -754,17 +1121,41 @@ export default function WorkflowDetailPage() {
             </div>
           )}
           {workflow && editingMeta && (
-            <div className="flex items-center gap-2 flex-1">
-              <div className="space-y-1 flex-1">
+            <div
+              style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  flex: 1,
+                }}
+              >
                 <input
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                  style={{
+                    padding: "6px 12px",
+                    border: "1px solid #E5E7EB",
+                    borderRadius: 8,
+                    fontSize: 14,
+                    fontWeight: "bold",
+                    outline: "none",
+                    width: "100%",
+                  }}
                   value={metaName}
                   onChange={(e) => setMetaName(e.target.value)}
                   placeholder="Workflow name"
                   autoFocus
                 />
                 <input
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                  style={{
+                    padding: "6px 12px",
+                    border: "1px solid #E5E7EB",
+                    borderRadius: 8,
+                    fontSize: 14,
+                    outline: "none",
+                    width: "100%",
+                  }}
                   value={metaDesc}
                   onChange={(e) => setMetaDesc(e.target.value)}
                   placeholder="Description (optional)"
@@ -773,29 +1164,63 @@ export default function WorkflowDetailPage() {
               <button
                 onClick={handleSaveMeta}
                 disabled={saving}
-                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 shrink-0"
+                style={{
+                  padding: "6px 12px",
+                  background: "#2563EB",
+                  color: "#FFFFFF",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  cursor: "pointer",
+                  flexShrink: 0,
+                  opacity: saving ? 0.5 : 1,
+                }}
               >
                 {saving ? "..." : "Save"}
               </button>
               <button
                 onClick={() => setEditingMeta(false)}
-                className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 shrink-0"
+                style={{
+                  padding: "6px 12px",
+                  background: "#F3F4F6",
+                  color: "#6B7280",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  cursor: "pointer",
+                  flexShrink: 0,
+                }}
               >
                 Cancel
               </button>
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexShrink: 0,
+          }}
+        >
           {workflow && (
             <button
               onClick={handleToggleActive}
               disabled={togglingActive}
-              className={`px-4 py-2 text-white rounded-lg hover:opacity-90 disabled:opacity-50 text-sm font-medium transition-colors shrink-0 ${
-                workflow.isActive
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-green-600 hover:bg-green-700"
-              }`}
+              style={{
+                padding: "8px 16px",
+                background: workflow.isActive ? "#DC2626" : "#16A34A",
+                color: "#FFFFFF",
+                border: "none",
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 500,
+                cursor: "pointer",
+                flexShrink: 0,
+                opacity: togglingActive ? 0.5 : 1,
+                transition: "all 0.2s",
+              }}
             >
               {togglingActive
                 ? "..."
@@ -807,7 +1232,20 @@ export default function WorkflowDetailPage() {
           <button
             onClick={handleRun}
             disabled={running || !workflow}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm font-medium transition-colors shrink-0 ml-3"
+            style={{
+              padding: "8px 16px",
+              background: "#16A34A",
+              color: "#FFFFFF",
+              border: "none",
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: "pointer",
+              flexShrink: 0,
+              marginLeft: 12,
+              opacity: running || !workflow ? 0.5 : 1,
+              transition: "all 0.2s",
+            }}
           >
             {running ? "Running..." : "▶ Run Now"}
           </button>
@@ -815,14 +1253,42 @@ export default function WorkflowDetailPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
+        <div
+          style={{
+            background: "#FEF2F2",
+            border: "1px solid #FECACA",
+            color: "#B91C1C",
+            padding: "12px 16px",
+            borderRadius: 8,
+            marginBottom: 16,
+            fontSize: 14,
+          }}
+        >
           {error}
         </div>
       )}
 
       {loading && (
-        <div className="flex items-center gap-3 text-gray-400 py-12 justify-center">
-          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            color: "#9CA3AF",
+            padding: "48px 0",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              width: 20,
+              height: 20,
+              border: "2px solid #2563EB",
+              borderTop: "2px solid transparent",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+            }}
+          />
           Loading...
         </div>
       )}
@@ -830,13 +1296,31 @@ export default function WorkflowDetailPage() {
       {!loading && workflow && (
         <>
           {/* Meta bar */}
-          <div className="flex items-center gap-4 text-xs text-gray-400 mb-4 flex-wrap">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              fontSize: 12,
+              color: "#9CA3AF",
+              marginBottom: 16,
+              flexWrap: "wrap",
+            }}
+          >
             <span>
               Created {new Date(workflow.createdAt).toLocaleDateString()}
             </span>
             <span>
               Trigger:{" "}
-              <code className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+              <code
+                style={{
+                  background: "#F3F4F6",
+                  color: "#6B7280",
+                  padding: "2px 6px",
+                  borderRadius: 4,
+                  fontFamily: "monospace",
+                }}
+              >
                 {triggerLabel}
               </code>
             </span>
@@ -853,49 +1337,128 @@ export default function WorkflowDetailPage() {
           {!editingTrigger && (
             <>
               {triggerConfig?.type === "schedule" ? (
-                <div className="bg-purple-50 border border-purple-200 rounded-xl px-4 py-3 mb-6 flex items-start justify-between gap-3">
+                <div
+                  style={{
+                    background: "#FAF5FF",
+                    border: "1px solid #E9D5FF",
+                    borderRadius: 12,
+                    padding: "12px 16px",
+                    marginBottom: 24,
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    gap: 12,
+                  }}
+                >
                   <div>
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-xs font-medium text-purple-700">
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        marginBottom: 4,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: "#7C3AED",
+                        }}
+                      >
                         ⏰ Schedule Trigger
                       </span>
-                      <code className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-mono">
+                      <code
+                        style={{
+                          fontSize: 12,
+                          background: "#F3E8FF",
+                          color: "#6B21A8",
+                          padding: "2px 8px",
+                          borderRadius: 4,
+                          fontFamily: "monospace",
+                        }}
+                      >
                         {triggerConfig.cron}
                       </code>
-                      <span className="text-xs text-purple-600">
+                      <span style={{ fontSize: 12, color: "#A78BFA" }}>
                         — {cronHumanLabel(triggerConfig.cron)}
                       </span>
                       {triggerConfig.timezone && (
-                        <span className="text-xs text-purple-500">
+                        <span style={{ fontSize: 12, color: "#C4B5FD" }}>
                           ({triggerConfig.timezone})
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-purple-500">
+                    <p style={{ fontSize: 12, color: "#A78BFA" }}>
                       Runs automatically via cron-job.org → Vercel.
                     </p>
                   </div>
                   <button
                     onClick={() => setEditingTrigger(true)}
-                    className="text-xs px-2 py-1 text-purple-600 hover:bg-purple-100 rounded transition-colors shrink-0"
+                    style={{
+                      fontSize: 12,
+                      padding: "4px 8px",
+                      color: "#7C3AED",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: 4,
+                      cursor: "pointer",
+                      flexShrink: 0,
+                      transition: "all 0.2s",
+                    }}
                   >
                     ✏️ Edit
                   </button>
                 </div>
               ) : triggerConfig?.type === "whatsapp" ? (
-                <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-6 flex items-start justify-between gap-3">
+                <div
+                  style={{
+                    background: "#F0FDF4",
+                    border: "1px solid #BBF7D0",
+                    borderRadius: 12,
+                    padding: "12px 16px",
+                    marginBottom: 24,
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    gap: 12,
+                  }}
+                >
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-green-700">
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: "#166534",
+                        }}
+                      >
                         💬 WhatsApp Trigger
                       </span>
                       {triggerConfig.keyword && (
-                        <code className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded font-mono">
+                        <code
+                          style={{
+                            fontSize: 12,
+                            background: "#DCFCE7",
+                            color: "#166534",
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            fontFamily: "monospace",
+                          }}
+                        >
                           keyword: {triggerConfig.keyword}
                         </code>
                       )}
                     </div>
-                    <p className="text-xs text-green-600">
+                    <p style={{ fontSize: 12, color: "#22C55E" }}>
                       Fires when an incoming WhatsApp message{" "}
                       {triggerConfig.keyword
                         ? `contains "${triggerConfig.keyword}"`
@@ -905,34 +1468,94 @@ export default function WorkflowDetailPage() {
                   </div>
                   <button
                     onClick={() => setEditingTrigger(true)}
-                    className="text-xs px-2 py-1 text-green-600 hover:bg-green-100 rounded transition-colors shrink-0"
+                    style={{
+                      fontSize: 12,
+                      padding: "4px 8px",
+                      color: "#166534",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: 4,
+                      cursor: "pointer",
+                      flexShrink: 0,
+                      transition: "all 0.2s",
+                    }}
                   >
                     ✏️ Edit
                   </button>
                 </div>
               ) : triggerConfig?.type === "manual" ? (
-                <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-6 flex items-start justify-between gap-3">
+                <div
+                  style={{
+                    background: "#F9FAFB",
+                    border: "1px solid #E5E7EB",
+                    borderRadius: 12,
+                    padding: "12px 16px",
+                    marginBottom: 24,
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    gap: 12,
+                  }}
+                >
                   <div>
-                    <span className="text-xs font-medium text-gray-700">
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: "#1A1A2E",
+                      }}
+                    >
                       🖐 Manual Trigger
                     </span>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
                       Only fires when you click "Run Now".
                     </p>
                   </div>
                   <button
                     onClick={() => setEditingTrigger(true)}
-                    className="text-xs px-2 py-1 text-gray-500 hover:bg-gray-200 rounded transition-colors shrink-0"
+                    style={{
+                      fontSize: 12,
+                      padding: "4px 8px",
+                      color: "#6B7280",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: 4,
+                      cursor: "pointer",
+                      flexShrink: 0,
+                      transition: "all 0.2s",
+                    }}
                   >
                     ✏️ Edit
                   </button>
                 </div>
               ) : (
-                <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-6 flex items-center gap-3">
-                  <span className="text-xs text-gray-400 shrink-0">
+                <div
+                  style={{
+                    background: "#F9FAFB",
+                    border: "1px solid #E5E7EB",
+                    borderRadius: 12,
+                    padding: "12px 16px",
+                    marginBottom: 24,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
+                  <span
+                    style={{ fontSize: 12, color: "#9CA3AF", flexShrink: 0 }}
+                  >
                     Webhook URL
                   </span>
-                  <code className="text-xs text-gray-600 flex-1 truncate">
+                  <code
+                    style={{
+                      fontSize: 12,
+                      color: "#6B7280",
+                      flex: 1,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      fontFamily: "monospace",
+                    }}
+                  >
                     {typeof window !== "undefined"
                       ? `${window.location.origin}/api/webhook/${id}`
                       : `/api/webhook/${id}`}
@@ -943,13 +1566,31 @@ export default function WorkflowDetailPage() {
                         `${window.location.origin}/api/webhook/${id}`,
                       )
                     }
-                    className="text-xs px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-100 shrink-0"
+                    style={{
+                      fontSize: 12,
+                      padding: "4px 8px",
+                      background: "#FFFFFF",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: 4,
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
                   >
                     Copy
                   </button>
                   <button
                     onClick={() => setEditingTrigger(true)}
-                    className="text-xs px-2 py-1 text-gray-500 hover:bg-gray-200 rounded transition-colors shrink-0"
+                    style={{
+                      fontSize: 12,
+                      padding: "4px 8px",
+                      color: "#6B7280",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: 4,
+                      cursor: "pointer",
+                      flexShrink: 0,
+                      transition: "all 0.2s",
+                    }}
                   >
                     ✏️ Edit
                   </button>
@@ -960,8 +1601,24 @@ export default function WorkflowDetailPage() {
 
           {/* Trigger edit form */}
           {editingTrigger && (
-            <div className="bg-white border border-blue-200 rounded-xl px-5 py-4 mb-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-gray-800 mb-3">
+            <div
+              style={{
+                background: "#FFFFFF",
+                border: "1px solid #DBEAFE",
+                borderRadius: 12,
+                padding: "20px",
+                marginBottom: 24,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "#1A1A2E",
+                  marginBottom: 12,
+                }}
+              >
                 Edit Trigger
               </h3>
               <TriggerEditForm
@@ -974,7 +1631,14 @@ export default function WorkflowDetailPage() {
           )}
 
           {/* Tabs */}
-          <div className="flex gap-1 mb-4 border-b border-gray-200">
+          <div
+            style={{
+              display: "flex",
+              gap: 4,
+              marginBottom: 16,
+              borderBottom: "1px solid #E5E7EB",
+            }}
+          >
             {(
               [
                 { key: "steps", label: `Steps (${workflow.steps.length})` },
@@ -985,11 +1649,20 @@ export default function WorkflowDetailPage() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                  activeTab === tab.key
-                    ? "border-blue-600 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
+                style={{
+                  padding: "8px 16px",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  color: activeTab === tab.key ? "#2563EB" : "#6B7280",
+                  background: "none",
+                  border: "none",
+                  borderBottom:
+                    activeTab === tab.key
+                      ? "2px solid #2563EB"
+                      : "2px solid transparent",
+                  marginBottom: -1,
+                  cursor: "pointer",
+                }}
               >
                 {tab.label}
               </button>
@@ -998,9 +1671,24 @@ export default function WorkflowDetailPage() {
 
           {/* ── STEPS TAB ── */}
           {activeTab === "steps" && (
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <span className="font-medium text-gray-900">Steps</span>
+            <div
+              style={{
+                background: "#FFFFFF",
+                border: "1px solid #E5E7EB",
+                borderRadius: 12,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "16px 20px",
+                  borderBottom: "1px solid #F3F4F6",
+                }}
+              >
+                <span style={{ fontWeight: 500, color: "#1A1A2E" }}>Steps</span>
                 <button
                   onClick={() => {
                     setShowAddForm(!showAddForm);
@@ -1008,7 +1696,16 @@ export default function WorkflowDetailPage() {
                     setFormState({});
                     setEditingStepIdx(null);
                   }}
-                  className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                  style={{
+                    padding: "6px 12px",
+                    background: "#2563EB",
+                    color: "#FFFFFF",
+                    border: "none",
+                    borderRadius: 8,
+                    fontSize: 14,
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}
                 >
                   {showAddForm ? "Cancel" : "+ Add Step"}
                 </button>
@@ -1016,16 +1713,51 @@ export default function WorkflowDetailPage() {
 
               {/* Add step form */}
               {showAddForm && (
-                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
-                  <p className="text-xs font-semibold text-gray-700 mb-3">
+                <div
+                  style={{
+                    padding: "16px 20px",
+                    borderBottom: "1px solid #F3F4F6",
+                    background: "#F9FAFB",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "#1A1A2E",
+                      marginBottom: 12,
+                    }}
+                  >
                     New Step
                   </p>
                   {formError && (
-                    <div className="text-red-600 text-sm mb-3">{formError}</div>
+                    <div
+                      style={{
+                        color: "#B91C1C",
+                        fontSize: 14,
+                        marginBottom: 12,
+                      }}
+                    >
+                      {formError}
+                    </div>
                   )}
-                  <div className="space-y-3">
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 12,
+                    }}
+                  >
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: "#6B7280",
+                          marginBottom: 4,
+                        }}
+                      >
                         Step type
                       </label>
                       <select
@@ -1035,7 +1767,17 @@ export default function WorkflowDetailPage() {
                           setFormState({});
                           setFormError("");
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        style={{
+                          width: "100%",
+                          padding: "8px 12px",
+                          border: "1px solid #E5E7EB",
+                          borderRadius: 8,
+                          fontSize: 14,
+                          outline: "none",
+                          background: "#FFFFFF",
+                          color: "#1A1A2E",
+                          fontFamily: "Inter, sans-serif",
+                        }}
                       >
                         {STEP_TYPES.map((t) => (
                           <option key={t.value} value={t.value}>
@@ -1049,11 +1791,21 @@ export default function WorkflowDetailPage() {
                       formState={formState}
                       setFormState={setFormState}
                     />
-                    <div className="flex gap-2 pt-1">
+                    <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
                       <button
                         onClick={handleAddStep}
                         disabled={saving}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 font-medium"
+                        style={{
+                          padding: "8px 16px",
+                          background: "#2563EB",
+                          color: "#FFFFFF",
+                          border: "none",
+                          borderRadius: 8,
+                          fontSize: 14,
+                          fontWeight: 500,
+                          cursor: "pointer",
+                          opacity: saving ? 0.5 : 1,
+                        }}
                       >
                         {saving ? "Saving..." : "Add Step"}
                       </button>
@@ -1063,7 +1815,15 @@ export default function WorkflowDetailPage() {
                           setFormState({});
                           setFormError("");
                         }}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
+                        style={{
+                          padding: "8px 16px",
+                          background: "#F3F4F6",
+                          color: "#374151",
+                          border: "none",
+                          borderRadius: 8,
+                          fontSize: 14,
+                          cursor: "pointer",
+                        }}
                       >
                         Cancel
                       </button>
@@ -1073,24 +1833,67 @@ export default function WorkflowDetailPage() {
               )}
 
               {workflow.steps.length === 0 && !showAddForm ? (
-                <div className="px-5 py-12 text-center text-gray-400 text-sm">
+                <div
+                  style={{
+                    padding: "48px 20px",
+                    textAlign: "center",
+                    color: "#9CA3AF",
+                    fontSize: 14,
+                  }}
+                >
                   No steps yet — click "+ Add Step" to build your workflow
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div style={{ borderTop: "1px solid #F3F4F6" }}>
                   {workflow.steps.map((s, idx) => (
-                    <div key={idx}>
+                    <div
+                      key={idx}
+                      style={{ borderBottom: "1px solid #F3F4F6" }}
+                    >
                       {/* Step row */}
                       <div
-                        className={`px-5 py-4 flex items-start justify-between gap-4 ${editingStepIdx === idx ? "bg-blue-50" : ""}`}
+                        style={{
+                          padding: "16px 20px",
+                          display: "flex",
+                          alignItems: "flex-start",
+                          justifyContent: "space-between",
+                          gap: 16,
+                          background:
+                            editingStepIdx === idx ? "#EFF6FF" : "#FFFFFF",
+                        }}
                       >
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 12,
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
                           {/* Reorder controls */}
-                          <div className="flex flex-col gap-0.5 mt-1 shrink-0">
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 2,
+                              marginTop: 4,
+                              flexShrink: 0,
+                            }}
+                          >
                             <button
                               onClick={() => handleMoveStep(idx, "up")}
                               disabled={idx === 0 || saving}
-                              className="text-gray-300 hover:text-gray-500 disabled:opacity-20 text-xs leading-none"
+                              style={{
+                                color: "#D1D5DB",
+                                cursor: "pointer",
+                                fontSize: 12,
+                                background: "none",
+                                border: "none",
+                                opacity: idx === 0 || saving ? 0.2 : 1,
+                                padding: 0,
+                                lineHeight: 1,
+                              }}
                               title="Move up"
                             >
                               ▲
@@ -1100,38 +1903,113 @@ export default function WorkflowDetailPage() {
                               disabled={
                                 idx === workflow.steps.length - 1 || saving
                               }
-                              className="text-gray-300 hover:text-gray-500 disabled:opacity-20 text-xs leading-none"
+                              style={{
+                                color: "#D1D5DB",
+                                cursor: "pointer",
+                                fontSize: 12,
+                                background: "none",
+                                border: "none",
+                                opacity:
+                                  idx === workflow.steps.length - 1 || saving
+                                    ? 0.2
+                                    : 1,
+                                padding: 0,
+                                lineHeight: 1,
+                              }}
                               title="Move down"
                             >
                               ▼
                             </button>
                           </div>
-                          <span className="shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center mt-0.5">
+                          <span
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: "50%",
+                              background: "#DBEAFE",
+                              color: "#1D4ED8",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                              marginTop: 2,
+                            }}
+                          >
                             {idx + 1}
                           </span>
-                          <div className="flex-1 min-w-0">
-                            <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded mb-1">
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <span
+                              style={{
+                                display: "inline-block",
+                                padding: "2px 8px",
+                                background: "#EFF6FF",
+                                color: "#1D4ED8",
+                                fontSize: 12,
+                                fontWeight: 500,
+                                borderRadius: 4,
+                                marginBottom: 4,
+                              }}
+                            >
                               {s.type}
                             </span>
-                            <p className="text-sm text-gray-600 truncate">
+                            <p
+                              style={{
+                                fontSize: 14,
+                                color: "#6B7280",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
                               {stepSummary(s)}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                            flexShrink: 0,
+                          }}
+                        >
                           <button
                             onClick={() =>
                               editingStepIdx === idx
                                 ? setEditingStepIdx(null)
                                 : startEditStep(idx)
                             }
-                            className={`px-2 py-1 text-xs rounded transition-colors ${editingStepIdx === idx ? "bg-blue-100 text-blue-700" : "text-blue-500 hover:bg-blue-50"}`}
+                            style={{
+                              padding: "4px 8px",
+                              fontSize: 12,
+                              border: "none",
+                              borderRadius: 4,
+                              background:
+                                editingStepIdx === idx
+                                  ? "#DBEAFE"
+                                  : "transparent",
+                              color:
+                                editingStepIdx === idx ? "#1D4ED8" : "#2563EB",
+                              cursor: "pointer",
+                              transition: "all 0.2s",
+                            }}
                           >
                             {editingStepIdx === idx ? "Close" : "Edit"}
                           </button>
                           <button
                             onClick={() => handleDeleteStep(idx)}
-                            className="px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded transition-colors"
+                            style={{
+                              padding: "4px 8px",
+                              fontSize: 12,
+                              background: "transparent",
+                              color: "#DC2626",
+                              border: "none",
+                              borderRadius: 4,
+                              cursor: "pointer",
+                              transition: "all 0.2s",
+                            }}
                           >
                             Delete
                           </button>
@@ -1140,18 +2018,51 @@ export default function WorkflowDetailPage() {
 
                       {/* Inline step edit form */}
                       {editingStepIdx === idx && (
-                        <div className="px-5 pb-5 bg-blue-50 border-b border-blue-100">
-                          <p className="text-xs font-semibold text-blue-700 mb-3">
+                        <div
+                          style={{
+                            padding: "20px",
+                            background: "#EFF6FF",
+                            borderBottom: "1px solid #DBEAFE",
+                          }}
+                        >
+                          <p
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 600,
+                              color: "#1D4ED8",
+                              marginBottom: 12,
+                            }}
+                          >
                             Editing Step {idx + 1}
                           </p>
                           {editStepError && (
-                            <div className="text-red-600 text-sm mb-3">
+                            <div
+                              style={{
+                                color: "#B91C1C",
+                                fontSize: 14,
+                                marginBottom: 12,
+                              }}
+                            >
                               {editStepError}
                             </div>
                           )}
-                          <div className="space-y-3">
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 12,
+                            }}
+                          >
                             <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                              <label
+                                style={{
+                                  display: "block",
+                                  fontSize: 12,
+                                  fontWeight: 500,
+                                  color: "#6B7280",
+                                  marginBottom: 4,
+                                }}
+                              >
                                 Step type
                               </label>
                               <select
@@ -1161,7 +2072,17 @@ export default function WorkflowDetailPage() {
                                   setEditStepForm({});
                                   setEditStepError("");
                                 }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                style={{
+                                  width: "100%",
+                                  padding: "8px 12px",
+                                  border: "1px solid #E5E7EB",
+                                  borderRadius: 8,
+                                  fontSize: 14,
+                                  outline: "none",
+                                  background: "#FFFFFF",
+                                  color: "#1A1A2E",
+                                  fontFamily: "Inter, sans-serif",
+                                }}
                               >
                                 {STEP_TYPES.map((t) => (
                                   <option key={t.value} value={t.value}>
@@ -1175,11 +2096,23 @@ export default function WorkflowDetailPage() {
                               formState={editStepForm}
                               setFormState={setEditStepForm}
                             />
-                            <div className="flex gap-2 pt-1">
+                            <div
+                              style={{ display: "flex", gap: 8, paddingTop: 4 }}
+                            >
                               <button
                                 onClick={handleSaveEditStep}
                                 disabled={saving}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 font-medium"
+                                style={{
+                                  padding: "8px 16px",
+                                  background: "#2563EB",
+                                  color: "#FFFFFF",
+                                  border: "none",
+                                  borderRadius: 8,
+                                  fontSize: 14,
+                                  fontWeight: 500,
+                                  cursor: "pointer",
+                                  opacity: saving ? 0.5 : 1,
+                                }}
                               >
                                 {saving ? "Saving..." : "Save Changes"}
                               </button>
@@ -1189,7 +2122,15 @@ export default function WorkflowDetailPage() {
                                   setEditStepForm({});
                                   setEditStepError("");
                                 }}
-                                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
+                                style={{
+                                  padding: "8px 16px",
+                                  background: "#F3F4F6",
+                                  color: "#374151",
+                                  border: "none",
+                                  borderRadius: 8,
+                                  fontSize: 14,
+                                  cursor: "pointer",
+                                }}
                               >
                                 Cancel
                               </button>
@@ -1206,64 +2147,172 @@ export default function WorkflowDetailPage() {
 
           {/* ── RUNS TAB ── */}
           {activeTab === "runs" && (
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <span className="font-medium text-gray-900">Run History</span>
+            <div
+              style={{
+                background: "#FFFFFF",
+                border: "1px solid #E5E7EB",
+                borderRadius: 12,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "16px 20px",
+                  borderBottom: "1px solid #F3F4F6",
+                }}
+              >
+                <span style={{ fontWeight: 500, color: "#1A1A2E" }}>
+                  Run History
+                </span>
                 <button
                   onClick={fetchRuns}
-                  className="text-xs text-blue-600 hover:underline"
+                  style={{
+                    fontSize: 12,
+                    color: "#2563EB",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
                 >
                   Refresh
                 </button>
               </div>
               {runs.length === 0 ? (
-                <div className="px-5 py-12 text-center text-gray-400 text-sm">
+                <div
+                  style={{
+                    padding: "48px 20px",
+                    textAlign: "center",
+                    color: "#9CA3AF",
+                    fontSize: 14,
+                  }}
+                >
                   No runs yet — go to "🧪 Test Trigger" tab to run your first
                   test
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div style={{ borderTop: "1px solid #F3F4F6" }}>
                   {runs.map((run) => (
-                    <div key={run.id} className="px-5 py-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
+                    <div
+                      key={run.id}
+                      style={{
+                        padding: "16px 20px",
+                        borderBottom: "1px solid #F3F4F6",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          marginBottom: 8,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
                           <span
-                            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
-                              run.status === "completed"
-                                ? "bg-green-100 text-green-700"
-                                : run.status === "failed"
-                                  ? "bg-red-100 text-red-700"
-                                  : "bg-yellow-100 text-yellow-700"
-                            }`}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              padding: "2px 8px",
+                              borderRadius: 9999,
+                              fontSize: 12,
+                              fontWeight: 500,
+                              background:
+                                run.status === "completed"
+                                  ? "#DCFCE7"
+                                  : run.status === "failed"
+                                    ? "#FEE2E2"
+                                    : "#FEF9C3",
+                              color:
+                                run.status === "completed"
+                                  ? "#15803D"
+                                  : run.status === "failed"
+                                    ? "#B91C1C"
+                                    : "#A16207",
+                            }}
                           >
                             <span
-                              className={`w-1.5 h-1.5 rounded-full ${run.status === "completed" ? "bg-green-500" : run.status === "failed" ? "bg-red-500" : "bg-yellow-500"}`}
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: "50%",
+                                background:
+                                  run.status === "completed"
+                                    ? "#16A34A"
+                                    : run.status === "failed"
+                                      ? "#DC2626"
+                                      : "#EAB308",
+                              }}
                             />
                             {run.status}
                           </span>
-                          <span className="text-xs text-gray-400">
+                          <span style={{ fontSize: 12, color: "#9CA3AF" }}>
                             {timeAgo(run.startedAt)}
                           </span>
                         </div>
-                        <span className="text-xs text-gray-400 font-mono">
+                        <span
+                          style={{
+                            fontSize: 12,
+                            color: "#9CA3AF",
+                            fontFamily: "monospace",
+                          }}
+                        >
                           {run.id.slice(0, 8)}...
                         </span>
                       </div>
                       {run.steps?.length > 0 && (
-                        <div className="space-y-1 mt-1">
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 4,
+                            marginTop: 4,
+                          }}
+                        >
                           {run.steps.map((step, i) => (
                             <div
                               key={i}
-                              className="flex items-center gap-2 text-xs text-gray-500"
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                fontSize: 12,
+                                color: "#6B7280",
+                              }}
                             >
                               <span
-                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${step.status === "success" ? "bg-green-400" : "bg-red-400"}`}
+                                style={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: "50%",
+                                  flexShrink: 0,
+                                  background:
+                                    step.status === "success"
+                                      ? "#4ADE80"
+                                      : "#F87171",
+                                }}
                               />
                               <span>
                                 Step {step.stepIndex + 1} — {step.stepType}
                               </span>
                               {step.error && (
-                                <span className="text-red-500 truncate">
+                                <span
+                                  style={{
+                                    color: "#DC2626",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }}
+                                >
                                   — {step.error}
                                 </span>
                               )}
@@ -1280,58 +2329,175 @@ export default function WorkflowDetailPage() {
 
           {/* ── TEST TRIGGER TAB ── */}
           {activeTab === "test" && (
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
-              <div className="px-5 py-4 border-b border-gray-100">
-                <h3 className="font-medium text-gray-900">Test Trigger</h3>
-                <p className="text-sm text-gray-500 mt-0.5">
+            <div
+              style={{
+                background: "#FFFFFF",
+                border: "1px solid #E5E7EB",
+                borderRadius: 12,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+              }}
+            >
+              <div
+                style={{
+                  padding: "16px 20px",
+                  borderBottom: "1px solid #F3F4F6",
+                }}
+              >
+                <h3 style={{ fontWeight: 500, color: "#1A1A2E" }}>
+                  Test Trigger
+                </h3>
+                <p style={{ fontSize: 14, color: "#6B7280", marginTop: 2 }}>
                   Simulate a real trigger — paste the data your form/app would
                   send, then fire it.
                 </p>
               </div>
-              <div className="px-5 py-4 space-y-4">
-                <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-700">
-                  <p className="font-medium mb-1">How this works</p>
+              <div
+                style={{
+                  padding: "16px 20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 16,
+                }}
+              >
+                <div
+                  style={{
+                    background: "#EFF6FF",
+                    border: "1px solid #DBEAFE",
+                    borderRadius: 8,
+                    padding: "12px 16px",
+                    fontSize: 14,
+                    color: "#1D4ED8",
+                  }}
+                >
+                  <p style={{ fontWeight: 500, marginBottom: 4 }}>
+                    How this works
+                  </p>
                   <p>
                     This sends the data below directly to your webhook URL.
                     AutoMax will run all your steps, replacing{" "}
-                    <code className="font-mono font-bold">{"{{name}}"}</code>,{" "}
-                    <code className="font-mono font-bold">{"{{email}}"}</code>,{" "}
-                    <code className="font-mono font-bold">{"{{phone}}"}</code>{" "}
+                    <code
+                      style={{ fontFamily: "monospace", fontWeight: "bold" }}
+                    >
+                      {"{{name}}"}
+                    </code>
+                    ,{" "}
+                    <code
+                      style={{ fontFamily: "monospace", fontWeight: "bold" }}
+                    >
+                      {"{{email}}"}
+                    </code>
+                    ,{" "}
+                    <code
+                      style={{ fontFamily: "monospace", fontWeight: "bold" }}
+                    >
+                      {"{{phone}}"}
+                    </code>{" "}
                     etc. with the actual values.
                   </p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: "#6B7280",
+                      marginBottom: 4,
+                    }}
+                  >
                     Test data (JSON) — edit these values to match your real data
                   </label>
                   <textarea
                     value={testPayload}
                     onChange={(e) => setTestPayload(e.target.value)}
                     rows={8}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: 8,
+                      fontSize: 14,
+                      fontFamily: "monospace",
+                      outline: "none",
+                      background: "#FFFFFF",
+                      color: "#1A1A2E",
+                      resize: "none",
+                    }}
                   />
                 </div>
                 {testError && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  <div
+                    style={{
+                      background: "#FEF2F2",
+                      border: "1px solid #FECACA",
+                      color: "#B91C1C",
+                      padding: "12px 16px",
+                      borderRadius: 8,
+                      fontSize: 14,
+                    }}
+                  >
                     {testError}
                   </div>
                 )}
                 <button
                   onClick={handleTestTrigger}
                   disabled={testLoading}
-                  className="w-full py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-sm transition-colors"
+                  style={{
+                    width: "100%",
+                    padding: "10px 16px",
+                    background: "#2563EB",
+                    color: "#FFFFFF",
+                    border: "none",
+                    borderRadius: 8,
+                    fontWeight: 500,
+                    fontSize: 14,
+                    cursor: "pointer",
+                    opacity: testLoading ? 0.5 : 1,
+                    transition: "all 0.2s",
+                  }}
                 >
                   {testLoading ? "Running workflow..." : "🚀 Fire Test Trigger"}
                 </button>
                 {testResult && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
-                    <p className="text-sm font-medium text-green-700 mb-2">
+                  <div
+                    style={{
+                      background: "#F0FDF4",
+                      border: "1px solid #BBF7D0",
+                      borderRadius: 8,
+                      padding: "16px",
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: "#166534",
+                        marginBottom: 8,
+                      }}
+                    >
                       ✅ Workflow triggered successfully!
                     </p>
-                    <p className="text-xs text-green-600">
+                    <p
+                      style={{
+                        fontSize: 12,
+                        color: "#22C55E",
+                        marginBottom: 8,
+                      }}
+                    >
                       Check the Run History tab to see the full execution log.
                     </p>
-                    <pre className="mt-2 text-xs text-gray-600 overflow-auto max-h-40">
+                    <pre
+                      style={{
+                        fontSize: 12,
+                        color: "#6B7280",
+                        overflow: "auto",
+                        maxHeight: 160,
+                        fontFamily: "monospace",
+                        background: "#FFFFFF",
+                        padding: "8px",
+                        borderRadius: 4,
+                      }}
+                    >
                       {JSON.stringify(testResult, null, 2)}
                     </pre>
                   </div>

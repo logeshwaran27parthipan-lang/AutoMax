@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Zap } from "lucide-react";
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
@@ -141,99 +142,160 @@ function SectionBadge({ children }: { children: React.ReactNode }) {
 
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userInitials, setUserInitials] = useState("U");
+
+  useEffect(() => {
+    const cached = localStorage.getItem("automax_logged_in");
+    if (cached === "true") {
+      setIsLoggedIn(true);
+      const initials = localStorage.getItem("automax_initials") || "U";
+      setUserInitials(initials);
+      // Verify token is still valid in background
+      fetch("/api/org/api-key")
+        .then((r) => {
+          if (!r.ok) {
+            localStorage.removeItem("automax_logged_in");
+            localStorage.removeItem("automax_initials");
+            setIsLoggedIn(false);
+          }
+        })
+        .catch(() => {});
+    } else {
+      setIsLoggedIn(false);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       {/* NAVBAR */}
       <nav className="sticky top-0 z-50 bg-white border-b border-[#E5E7EB]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link href="/" className="text-xl font-bold text-[#1A1A2E]">
-              AutoMax
+            {/* Logo */}
+            <Link
+              href="/"
+              style={{ textDecoration: "none" }}
+              className="flex items-center gap-2"
+            >
+              <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#F59E0B]">
+                <Zap size={18} color="white" />
+              </div>
+              <span className="text-lg font-bold text-[#1A1A2E]">
+                Auto<span className="text-[#F59E0B]">Max</span>
+              </span>
             </Link>
-            <div className="hidden md:flex items-center gap-8">
+
+            {/* Right side - all items */}
+            <div className="hidden md:flex items-center gap-6">
               <a
                 href="#features"
-                className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors"
+                className="text-sm font-medium text-[#6B7280] hover:text-[#1A1A2E] transition-colors"
               >
                 Features
               </a>
               <a
                 href="#how-it-works"
-                className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors"
+                className="text-sm font-medium text-[#6B7280] hover:text-[#1A1A2E] transition-colors"
               >
                 How it works
               </a>
               <a
                 href="#pricing"
-                className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors"
+                className="text-sm font-medium text-[#6B7280] hover:text-[#1A1A2E] transition-colors"
               >
                 Pricing
               </a>
+              <div className="w-px h-5 bg-[#E5E7EB]"></div>
+              {isLoggedIn ? (
+                <a
+                  href="/dashboard"
+                  title="Go to Dashboard"
+                  className="w-9 h-9 rounded-full bg-[#F59E0B] flex items-center justify-center text-white font-bold text-sm hover:bg-[#D97706] transition-colors"
+                >
+                  {userInitials}
+                </a>
+              ) : (
+                <>
+                  <a
+                    href="/login"
+                    className="text-sm font-medium text-[#1A1A2E] hover:text-[#F59E0B] transition-colors"
+                  >
+                    Login
+                  </a>
+                  <a
+                    href="/register"
+                    className="text-sm font-semibold text-white bg-[#F59E0B] hover:bg-[#D97706] px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Get Started Free
+                  </a>
+                </>
+              )}
             </div>
-            <div className="hidden md:flex items-center gap-3">
-              <Link
-                href="/login"
-                className="px-4 py-2 text-sm font-medium text-[#1A1A2E] hover:bg-[#F3F4F6] rounded-lg transition-colors"
-              >
-                Login
-              </Link>
-              <Link
-                href="/register"
-                className="px-4 py-2 text-sm font-medium text-white bg-[#F59E0B] hover:bg-[#D97706] rounded-lg transition-colors"
-              >
-                Get Started Free
-              </Link>
-            </div>
+
+            {/* Mobile hamburger */}
             <button
               className="md:hidden p-2 text-[#6B7280]"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? (
-                <CloseIcon className="w-6 h-6" />
+                <CloseIcon className="w-5 h-5" />
               ) : (
-                <MenuIcon className="w-6 h-6" />
+                <MenuIcon className="w-5 h-5" />
               )}
             </button>
           </div>
+
+          {/* Mobile menu */}
           {mobileMenuOpen && (
             <div className="md:hidden py-4 border-t border-[#E5E7EB]">
               <div className="flex flex-col gap-4">
                 <a
                   href="#features"
-                  className="text-sm text-[#6B7280] hover:text-[#1A1A2E]"
+                  className="text-sm font-medium text-[#6B7280] hover:text-[#1A1A2E]"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Features
                 </a>
                 <a
                   href="#how-it-works"
-                  className="text-sm text-[#6B7280] hover:text-[#1A1A2E]"
+                  className="text-sm font-medium text-[#6B7280] hover:text-[#1A1A2E]"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   How it works
                 </a>
                 <a
                   href="#pricing"
-                  className="text-sm text-[#6B7280] hover:text-[#1A1A2E]"
+                  className="text-sm font-medium text-[#6B7280] hover:text-[#1A1A2E]"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Pricing
                 </a>
                 <div className="flex flex-col gap-2 pt-4 border-t border-[#E5E7EB]">
-                  <Link
-                    href="/login"
-                    className="px-4 py-2 text-sm font-medium text-[#1A1A2E] text-center border border-[#E5E7EB] rounded-lg"
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    href="/register"
-                    className="px-4 py-2 text-sm font-medium text-white bg-[#F59E0B] text-center rounded-lg"
-                  >
-                    Get Started Free
-                  </Link>
+                  {isLoggedIn ? (
+                    <a
+                      href="/dashboard"
+                      className="w-full text-center bg-[#F59E0B] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#D97706] transition-colors"
+                    >
+                      Go to Dashboard →
+                    </a>
+                  ) : (
+                    <>
+                      <a
+                        href="/login"
+                        className="text-sm font-medium text-[#1A1A2E] hover:text-[#F59E0B] transition-colors"
+                      >
+                        Login
+                      </a>
+                      <a
+                        href="/register"
+                        className="w-full text-center bg-[#F59E0B] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#D97706] transition-colors"
+                      >
+                        Get Started Free
+                      </a>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -606,7 +668,9 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8 items-start">
             <div>
-              <span className="text-xl font-bold text-[#1A1A2E]">AutoMax</span>
+              <span className="text-xl font-bold text-[#1A1A2E]">
+                Auto<span className="text-[#F59E0B]">Max</span>
+              </span>
               <p className="text-sm text-[#6B7280] mt-2">
                 Automate the work. Focus on the business.
               </p>

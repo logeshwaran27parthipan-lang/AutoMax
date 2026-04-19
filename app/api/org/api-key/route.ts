@@ -38,7 +38,14 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { orgName: membership.org.name, apiKey: membership.org.apiKey },
+      {
+        orgName: membership.org.name,
+        apiKey: membership.org.apiKey,
+        org: {
+          subscriptionStatus: membership.org.subscriptionStatus,
+          planId: membership.org.planId,
+        },
+      },
       { status: 200 },
     );
   } catch (err: any) {

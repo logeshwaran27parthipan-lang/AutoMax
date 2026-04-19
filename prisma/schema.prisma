@@ -101,6 +101,9 @@ model Organization {
   name      String
   apiKey    String               @unique
   createdAt DateTime             @default(now()) @map("created_at")
+  planId             String?              @map("plan_id")
+  subscriptionId     String?              @map("subscription_id")
+  subscriptionStatus String?              @default("free") @map("subscription_status")
   members   OrganizationMember[]
   workflows Workflow[]
   runs      WorkflowRun[]

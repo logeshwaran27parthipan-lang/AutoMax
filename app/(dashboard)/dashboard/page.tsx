@@ -1,18 +1,729 @@
-import React from "react";
+"use client";
 
-export default async function DashboardPage() {
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Zap,
+  Mail,
+  MessageCircle,
+  Brain,
+  Plus,
+  ArrowUpRight,
+  ArrowDownRight,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+} from "lucide-react";
+
+type Workflow = {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+};
+
+type WorkflowRun = {
+  id: string;
+  workflowId: string;
+  status: string;
+  trigger?: string;
+  startedAt: string;
+  workflow?: { name: string };
+};
+
+export default function DashboardPage() {
+  const router = useRouter();
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [recentRuns, setRecentRuns] = useState<WorkflowRun[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Fetch workflows
+        const workflowsRes = await fetch("/api/workflows");
+        const workflowsData = await workflowsRes.json();
+        const workflowsArray = Array.isArray(workflowsData)
+          ? workflowsData
+          : workflowsData.workflows || [];
+        setWorkflows(workflowsArray);
+
+        // Fetch runs from first workflow if exists
+        if (workflowsArray.length > 0) {
+          try {
+            const runsRes = await fetch(
+              `/api/workflows/${workflowsArray[0].id}/runs`,
+            );
+            const runsData = await runsRes.json();
+            const runsArray = Array.isArray(runsData)
+              ? runsData
+              : runsData.runs || [];
+            setRecentRuns(runsArray.slice(0, 5));
+          } catch {
+            // Silently ignore runs fetch error
+          }
+        }
+      } catch {
+        // Silently ignore workflows fetch error
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  // Compute stats
+  const totalWorkflows = workflows.length;
+  const activeWorkflows = workflows.filter((w) => w.isActive).length;
+  const totalRuns = recentRuns.length;
+  const successRuns = recentRuns.filter((r) => r.status === "completed").length;
+  const successRate =
+    totalRuns > 0 ? Math.round((successRuns / totalRuns) * 100) : 0;
+
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="p-4 bg-white rounded shadow">Welcome to AutoMax</div>
-        <div className="p-4 bg-white rounded shadow">Recent activity</div>
-        <div className="p-4 bg-white rounded shadow">
-          <a href="/dashboard/workflows" className="text-blue-600 font-medium">
-            Create workflow →
-          </a>
+    <div style={{ padding: 32, maxWidth: 1200, margin: "0 auto" }}>
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
+        <div>
+          <h1
+            style={{
+              fontSize: 28,
+              fontWeight: 700,
+              color: "var(--foreground)",
+            }}
+          >
+            Dashboard
+          </h1>
+          <p
+            style={{
+              fontSize: 14,
+              color: "var(--muted-foreground)",
+              marginTop: 4,
+            }}
+          >
+            Welcome back! Here's what's happening with your automations.
+          </p>
+        </div>
+        <button
+          onClick={() => router.push("/dashboard/workflows")}
+          style={{
+            backgroundColor: "var(--primary)",
+            color: "white",
+            border: "none",
+            borderRadius: 8,
+            padding: "10px 20px",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <Plus size={16} />
+          New Workflow
+        </button>
+      </div>
+
+      {/* Stats Cards */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 16,
+          marginTop: 32,
+        }}
+      >
+        {/* Card 1: Total Workflows */}
+        <div
+          style={{
+            backgroundColor: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: 12,
+            padding: 24,
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              backgroundColor: "#fef3c7",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 16,
+            }}
+          >
+            <Zap size={20} color="var(--primary)" />
+          </div>
+          <div
+            style={{
+              fontSize: 32,
+              fontWeight: 700,
+              color: "var(--foreground)",
+              marginBottom: 4,
+            }}
+          >
+            {totalWorkflows}
+          </div>
+          <div
+            style={{
+              fontSize: 14,
+              color: "var(--muted-foreground)",
+              marginBottom: 8,
+            }}
+          >
+            Total Workflows
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 12,
+              color: "#16a34a",
+            }}
+          >
+            <ArrowUpRight size={14} />
+            {activeWorkflows} active
+          </div>
+        </div>
+
+        {/* Card 2: Active Workflows */}
+        <div
+          style={{
+            backgroundColor: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: 12,
+            padding: 24,
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              backgroundColor: "#dcfce7",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 16,
+            }}
+          >
+            <CheckCircle2 size={20} color="#16a34a" />
+          </div>
+          <div
+            style={{
+              fontSize: 32,
+              fontWeight: 700,
+              color: "var(--foreground)",
+              marginBottom: 4,
+            }}
+          >
+            {activeWorkflows}
+          </div>
+          <div
+            style={{
+              fontSize: 14,
+              color: "var(--muted-foreground)",
+              marginBottom: 8,
+            }}
+          >
+            Active Workflows
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              color: "#6b7280",
+            }}
+          >
+            {totalWorkflows - activeWorkflows} paused
+          </div>
+        </div>
+
+        {/* Card 3: Recent Runs */}
+        <div
+          style={{
+            backgroundColor: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: 12,
+            padding: 24,
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              backgroundColor: "#dbeafe",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 16,
+            }}
+          >
+            <Clock size={20} color="#3b82f6" />
+          </div>
+          <div
+            style={{
+              fontSize: 32,
+              fontWeight: 700,
+              color: "var(--foreground)",
+              marginBottom: 4,
+            }}
+          >
+            {totalRuns}
+          </div>
+          <div
+            style={{
+              fontSize: 14,
+              color: "var(--muted-foreground)",
+              marginBottom: 8,
+            }}
+          >
+            Recent Runs
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 12,
+              color: "#16a34a",
+            }}
+          >
+            <ArrowUpRight size={14} />
+            {successRuns} succeeded
+          </div>
+        </div>
+
+        {/* Card 4: Success Rate */}
+        <div
+          style={{
+            backgroundColor: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: 12,
+            padding: 24,
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              backgroundColor: "#ede9fe",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 16,
+            }}
+          >
+            <Brain size={20} color="#8b5cf6" />
+          </div>
+          <div
+            style={{
+              fontSize: 32,
+              fontWeight: 700,
+              color: "var(--foreground)",
+              marginBottom: 4,
+            }}
+          >
+            {totalRuns > 0
+              ? `${Math.round((successRuns / totalRuns) * 100)}%`
+              : "—"}
+          </div>
+          <div
+            style={{
+              fontSize: 14,
+              color: "var(--muted-foreground)",
+              marginBottom: 8,
+            }}
+          >
+            Success Rate
+          </div>
+          {totalRuns > 0 && successRuns < totalRuns ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 12,
+                color: "#dc2626",
+              }}
+            >
+              <ArrowDownRight size={14} />
+              {totalRuns - successRuns} failed
+            </div>
+          ) : totalRuns > 0 ? (
+            <div
+              style={{
+                fontSize: 12,
+                color: "#16a34a",
+              }}
+            >
+              All passing
+            </div>
+          ) : null}
         </div>
       </div>
+
+      {/* Recent Workflows Section */}
+      <div style={{ marginTop: 32 }}>
+        <h2
+          style={{
+            fontSize: 18,
+            fontWeight: 600,
+            color: "var(--foreground)",
+            marginBottom: 16,
+          }}
+        >
+          Recent Workflows
+        </h2>
+
+        {loading ? (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: 40,
+            }}
+          >
+            <Loader2
+              size={24}
+              color="var(--primary)"
+              style={{ animation: "spin 1s linear infinite" }}
+            />
+          </div>
+        ) : workflows.length === 0 ? (
+          <div
+            style={{
+              backgroundColor: "var(--card)",
+              border: "1px solid var(--border)",
+              borderRadius: 12,
+              padding: 40,
+              textAlign: "center",
+            }}
+          >
+            <p
+              style={{
+                fontSize: 14,
+                color: "var(--muted-foreground)",
+                marginBottom: 16,
+              }}
+            >
+              No workflows yet. Create your first one!
+            </p>
+            <button
+              onClick={() => router.push("/dashboard/workflows")}
+              style={{
+                backgroundColor: "var(--primary)",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                padding: "8px 16px",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <Plus size={14} />
+              Create Workflow
+            </button>
+          </div>
+        ) : (
+          <>
+            {workflows.slice(0, 5).map((workflow) => (
+              <div
+                key={workflow.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "14px 16px",
+                  backgroundColor: "var(--card)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 10,
+                  marginBottom: 8,
+                  gap: 16,
+                }}
+              >
+                <div
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    backgroundColor: workflow.isActive ? "#16a34a" : "#e5e7eb",
+                  }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: "var(--foreground)",
+                    }}
+                  >
+                    {workflow.name}
+                  </div>
+                  {workflow.description && (
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "var(--muted-foreground)",
+                        marginLeft: 8,
+                        marginTop: 2,
+                      }}
+                    >
+                      {workflow.description}
+                    </div>
+                  )}
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--muted-foreground)",
+                    minWidth: 80,
+                  }}
+                >
+                  {new Date(workflow.createdAt).toLocaleDateString("en-IN")}
+                </div>
+                <button
+                  onClick={() =>
+                    router.push(`/dashboard/workflows/${workflow.id}`)
+                  }
+                  style={{
+                    backgroundColor: "var(--accent)",
+                    color: "var(--accent-foreground)",
+                    border: "none",
+                    borderRadius: 6,
+                    padding: "6px 14px",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                  }}
+                >
+                  View
+                </button>
+              </div>
+            ))}
+            {workflows.length > 5 && (
+              <div style={{ marginTop: 12 }}>
+                <button
+                  onClick={() => router.push("/dashboard/workflows")}
+                  style={{
+                    fontSize: 13,
+                    color: "var(--primary)",
+                    textDecoration: "none",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontWeight: 500,
+                  }}
+                >
+                  View all workflows →
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Quick Actions Section */}
+      <div style={{ marginTop: 32, marginBottom: 48 }}>
+        <h2
+          style={{
+            fontSize: 18,
+            fontWeight: 600,
+            color: "var(--foreground)",
+            marginBottom: 16,
+          }}
+        >
+          Quick Actions
+        </h2>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 16,
+            marginTop: 16,
+          }}
+        >
+          {/* Create Workflow Card */}
+          <button
+            onClick={() => router.push("/dashboard/workflows")}
+            style={{
+              backgroundColor: "var(--card)",
+              border: "1px solid var(--border)",
+              borderRadius: 12,
+              padding: 24,
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              textAlign: "left",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.borderColor =
+                "var(--primary)";
+              (e.currentTarget as HTMLElement).style.backgroundColor =
+                "var(--accent)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.borderColor =
+                "var(--border)";
+              (e.currentTarget as HTMLElement).style.backgroundColor =
+                "var(--card)";
+            }}
+          >
+            <Zap size={24} color="var(--primary)" />
+            <div>
+              <div
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: "var(--foreground)",
+                }}
+              >
+                Create Workflow
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "var(--muted-foreground)",
+                  marginTop: 4,
+                }}
+              >
+                Build a new automation in minutes
+              </div>
+            </div>
+          </button>
+
+          {/* Send Email Card */}
+          <button
+            onClick={() => router.push("/dashboard/email")}
+            style={{
+              backgroundColor: "var(--card)",
+              border: "1px solid var(--border)",
+              borderRadius: 12,
+              padding: 24,
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              textAlign: "left",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.borderColor = "#3b82f6";
+              (e.currentTarget as HTMLElement).style.backgroundColor =
+                "var(--accent)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.borderColor =
+                "var(--border)";
+              (e.currentTarget as HTMLElement).style.backgroundColor =
+                "var(--card)";
+            }}
+          >
+            <Mail size={24} color="#3b82f6" />
+            <div>
+              <div
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: "var(--foreground)",
+                }}
+              >
+                Send Email
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "var(--muted-foreground)",
+                  marginTop: 4,
+                }}
+              >
+                Send a one-off email to anyone
+              </div>
+            </div>
+          </button>
+
+          {/* WhatsApp Message Card */}
+          <button
+            onClick={() => router.push("/dashboard/whatsapp")}
+            style={{
+              backgroundColor: "var(--card)",
+              border: "1px solid var(--border)",
+              borderRadius: 12,
+              padding: 24,
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              textAlign: "left",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.borderColor = "#16a34a";
+              (e.currentTarget as HTMLElement).style.backgroundColor =
+                "var(--accent)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.borderColor =
+                "var(--border)";
+              (e.currentTarget as HTMLElement).style.backgroundColor =
+                "var(--card)";
+            }}
+          >
+            <MessageCircle size={24} color="#16a34a" />
+            <div>
+              <div
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: "var(--foreground)",
+                }}
+              >
+                WhatsApp Message
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "var(--muted-foreground)",
+                  marginTop: 4,
+                }}
+              >
+                Send a WhatsApp message instantly
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </div>
   );
 }

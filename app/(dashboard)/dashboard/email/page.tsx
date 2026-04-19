@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import axios from "axios";
+import { Mail, Send, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 
 export default function EmailPage() {
   const [to, setTo] = useState("");
@@ -50,62 +51,295 @@ export default function EmailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white rounded shadow p-6">
-          <h1 className="text-2xl font-bold mb-4">Send Email</h1>
+    <div style={{ padding: 32, maxWidth: 800, margin: "0 auto" }}>
+      {/* Page Header */}
+      <h1
+        style={{
+          fontSize: 28,
+          fontWeight: 700,
+          color: "var(--foreground)",
+          marginBottom: 8,
+        }}
+      >
+        Email
+      </h1>
+      <p
+        style={{
+          fontSize: 14,
+          color: "var(--muted-foreground)",
+          marginBottom: 32,
+        }}
+      >
+        Send a one-off email to anyone.
+      </p>
 
-          <form onSubmit={sendEmail} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">To</label>
-              <input
-                type="email"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                className="w-full p-2 border rounded"
-                placeholder="recipient@example.com"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Subject</label>
-              <input
-                type="text"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="w-full p-2 border rounded"
-                placeholder="Subject"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Message</label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                className="w-full p-2 border rounded h-40"
-                placeholder="Write your message here"
-                required
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-              >
-                {loading ? "Sending..." : "Send Email"}
-              </button>
-
-              {success && <div className="text-green-600">{success}</div>}
-              {error && <div className="text-red-600">{error}</div>}
-            </div>
-          </form>
+      {/* Card Container */}
+      <div
+        style={{
+          backgroundColor: "var(--card)",
+          border: "1px solid var(--border)",
+          borderRadius: 12,
+          padding: 24,
+        }}
+      >
+        {/* Card Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            marginBottom: 24,
+            paddingBottom: 16,
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              backgroundColor: "#dbeafe",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Mail size={18} color="#3b82f6" />
+          </div>
+          <span
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: "var(--foreground)",
+            }}
+          >
+            Send Email
+          </span>
         </div>
+
+        {/* Form */}
+        <form onSubmit={sendEmail}>
+          {/* To Field */}
+          <div style={{ marginBottom: 20 }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "var(--muted-foreground)",
+                marginBottom: 6,
+              }}
+            >
+              To
+            </label>
+            <input
+              type="email"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              placeholder="recipient@example.com"
+              required
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 14,
+                color: "var(--foreground)",
+                backgroundColor: "var(--secondary)",
+                outline: "none",
+                boxSizing: "border-box",
+                transition: "border-color 0.2s",
+              }}
+              onFocus={(e) => {
+                (e.currentTarget as HTMLInputElement).style.borderColor =
+                  "var(--primary)";
+              }}
+              onBlur={(e) => {
+                (e.currentTarget as HTMLInputElement).style.borderColor =
+                  "var(--border)";
+              }}
+            />
+          </div>
+
+          {/* Subject Field */}
+          <div style={{ marginBottom: 20 }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "var(--muted-foreground)",
+                marginBottom: 6,
+              }}
+            >
+              Subject
+            </label>
+            <input
+              type="text"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Email subject"
+              required
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 14,
+                color: "var(--foreground)",
+                backgroundColor: "var(--secondary)",
+                outline: "none",
+                boxSizing: "border-box",
+                transition: "border-color 0.2s",
+              }}
+              onFocus={(e) => {
+                (e.currentTarget as HTMLInputElement).style.borderColor =
+                  "var(--primary)";
+              }}
+              onBlur={(e) => {
+                (e.currentTarget as HTMLInputElement).style.borderColor =
+                  "var(--border)";
+              }}
+            />
+          </div>
+
+          {/* Message Field */}
+          <div style={{ marginBottom: 20 }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "var(--muted-foreground)",
+                marginBottom: 6,
+              }}
+            >
+              Message
+            </label>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Write your message here..."
+              required
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 14,
+                color: "var(--foreground)",
+                backgroundColor: "var(--secondary)",
+                outline: "none",
+                boxSizing: "border-box",
+                height: 160,
+                resize: "vertical",
+                transition: "border-color 0.2s",
+              }}
+              onFocus={(e) => {
+                (e.currentTarget as HTMLTextAreaElement).style.borderColor =
+                  "var(--primary)";
+              }}
+              onBlur={(e) => {
+                (e.currentTarget as HTMLTextAreaElement).style.borderColor =
+                  "var(--border)";
+              }}
+            />
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              backgroundColor: loading ? "#fcd34d" : "var(--primary)",
+              color: loading ? "var(--foreground)" : "white",
+              border: "none",
+              borderRadius: 8,
+              padding: "11px 24px",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: loading ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              if (!loading) {
+                (e.currentTarget as HTMLButtonElement).style.opacity = "0.9";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!loading) {
+                (e.currentTarget as HTMLButtonElement).style.opacity = "1";
+              }
+            }}
+          >
+            {loading ? (
+              <Loader2
+                size={16}
+                style={{ animation: "spin 1s linear infinite" }}
+              />
+            ) : (
+              <Send size={16} />
+            )}
+            {loading ? "Sending..." : "Send Email"}
+          </button>
+
+          {/* Success Message */}
+          {success && (
+            <div
+              style={{
+                marginTop: 16,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "12px 16px",
+                backgroundColor: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                borderRadius: 8,
+                fontSize: 13,
+                color: "#16a34a",
+              }}
+            >
+              <CheckCircle2 size={16} color="#16a34a" />
+              {success}
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div
+              style={{
+                marginTop: 16,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "12px 16px",
+                backgroundColor: "#fef2f2",
+                border: "1px solid #fecaca",
+                borderRadius: 8,
+                fontSize: 13,
+                color: "#dc2626",
+              }}
+            >
+              <AlertCircle size={16} color="#dc2626" />
+              {error}
+            </div>
+          )}
+        </form>
       </div>
+
+      <style>{`
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </div>
   );
 }

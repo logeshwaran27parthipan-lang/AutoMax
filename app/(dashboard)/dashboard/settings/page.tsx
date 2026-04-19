@@ -1,6 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import {
+  Building2,
+  Key,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  CheckCircle2,
+  Loader2,
+} from "lucide-react";
 
 export default function SettingsPage() {
   const [orgName, setOrgName] = useState("");
@@ -51,7 +60,7 @@ export default function SettingsPage() {
       }
       const data = await res.json();
       setApiKey(data.apiKey);
-      setSuccessMsg("API key regenerated.");
+      setSuccessMsg("API key regenerated successfully.");
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       setError("An error occurred while regenerating the API key");
@@ -61,67 +70,325 @@ export default function SettingsPage() {
   };
 
   if (loading) {
-    return <div className="p-6">Loading...</div>;
+    return (
+      <div
+        style={{
+          padding: 32,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          color: "var(--muted-foreground)",
+        }}
+      >
+        <Loader2 size={20} style={{ animation: "spin 1s linear infinite" }} />
+        Loading settings...
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="p-6 text-red-600">{error}</div>;
+    return (
+      <div style={{ padding: 32, color: "#dc2626", fontSize: 14 }}>{error}</div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto p-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
+    <div style={{ padding: 32, maxWidth: 800, margin: "0 auto" }}>
+      {/* Page Header */}
+      <h1
+        style={{
+          fontSize: 28,
+          fontWeight: 700,
+          color: "var(--foreground)",
+          marginBottom: 8,
+        }}
+      >
+        Settings
+      </h1>
+      <p
+        style={{
+          fontSize: 14,
+          color: "var(--muted-foreground)",
+          marginBottom: 32,
+        }}
+      >
+        Manage your organization and API access.
+      </p>
 
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            Organization
-          </h2>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Organization Name
-            </label>
-            <div className="text-lg text-gray-900">{orgName}</div>
+      {/* Organization Card */}
+      <div
+        style={{
+          backgroundColor: "var(--card)",
+          border: "1px solid var(--border)",
+          borderRadius: 12,
+          padding: 24,
+          marginBottom: 24,
+        }}
+      >
+        {/* Card Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            marginBottom: 20,
+            paddingBottom: 16,
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              backgroundColor: "#fef3c7",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Building2 size={18} color="var(--primary)" />
           </div>
+          <span
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: "var(--foreground)",
+            }}
+          >
+            Organization
+          </span>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">API Key</h2>
-
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            API Key
-          </label>
-
-          <div className="flex gap-2 mb-4">
-            <input
-              type={showKey ? "text" : "password"}
-              value={apiKey}
-              readOnly
-              className="flex-1 font-mono border border-gray-300 rounded px-3 py-2 text-sm bg-gray-50"
-            />
-            <button
-              onClick={() => setShowKey(!showKey)}
-              className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded text-sm font-medium transition"
-            >
-              {showKey ? "Hide" : "Show"}
-            </button>
-          </div>
-
-          <button
-            onClick={handleRegenerate}
-            disabled={regenerating}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded text-sm font-medium transition"
+        {/* Organization Name Field */}
+        <div>
+          <label
+            style={{
+              fontSize: 13,
+              fontWeight: 500,
+              color: "var(--muted-foreground)",
+              marginBottom: 6,
+              display: "block",
+            }}
           >
-            {regenerating ? "Regenerating..." : "Regenerate API Key"}
-          </button>
-
-          {successMsg && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded text-green-800 text-sm">
-              {successMsg}
-            </div>
-          )}
+            Organization Name
+          </label>
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 500,
+              color: "var(--foreground)",
+              padding: "10px 14px",
+              backgroundColor: "var(--secondary)",
+              borderRadius: 8,
+            }}
+          >
+            {orgName}
+          </div>
         </div>
       </div>
+
+      {/* API Key Card */}
+      <div
+        style={{
+          backgroundColor: "var(--card)",
+          border: "1px solid var(--border)",
+          borderRadius: 12,
+          padding: 24,
+        }}
+      >
+        {/* Card Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            marginBottom: 20,
+            paddingBottom: 16,
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              backgroundColor: "#fef3c7",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Key size={18} color="var(--primary)" />
+          </div>
+          <span
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: "var(--foreground)",
+            }}
+          >
+            API Key
+          </span>
+        </div>
+
+        {/* Warning Text */}
+        <p
+          style={{
+            fontSize: 13,
+            color: "var(--muted-foreground)",
+            marginBottom: 20,
+          }}
+        >
+          Use this key to authenticate AutoMax API requests. Keep it secret.
+        </p>
+
+        {/* API Key Label */}
+        <label
+          style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: "var(--muted-foreground)",
+            marginBottom: 8,
+            display: "block",
+          }}
+        >
+          Your API Key
+        </label>
+
+        {/* Input and Show/Hide Button */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <input
+            type={showKey ? "text" : "password"}
+            value={apiKey}
+            readOnly
+            style={{
+              flex: 1,
+              fontFamily: "monospace",
+              fontSize: 13,
+              padding: "10px 14px",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              backgroundColor: "var(--secondary)",
+              color: "var(--foreground)",
+              outline: "none",
+            }}
+          />
+          <button
+            onClick={() => setShowKey(!showKey)}
+            style={{
+              padding: "10px 16px",
+              backgroundColor: "var(--secondary)",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              color: "var(--foreground)",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor =
+                "var(--accent)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor =
+                "var(--secondary)";
+            }}
+          >
+            {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
+            {showKey ? "Hide" : "Show"}
+          </button>
+        </div>
+
+        {/* Regenerate Button */}
+        <button
+          onClick={handleRegenerate}
+          disabled={regenerating}
+          style={{
+            backgroundColor: regenerating ? "#fca5a5" : "#dc2626",
+            color: "white",
+            border: "none",
+            borderRadius: 8,
+            padding: "10px 20px",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: regenerating ? "not-allowed" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            if (!regenerating) {
+              (e.currentTarget as HTMLElement).style.backgroundColor =
+                "#b91c1c";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!regenerating) {
+              (e.currentTarget as HTMLElement).style.backgroundColor =
+                "#dc2626";
+            }
+          }}
+        >
+          {regenerating ? (
+            <Loader2
+              size={15}
+              style={{ animation: "spin 1s linear infinite" }}
+            />
+          ) : (
+            <RefreshCw size={15} />
+          )}
+          {regenerating ? "Regenerating..." : "Regenerate API Key"}
+        </button>
+
+        {/* Warning Text Below Button */}
+        <p
+          style={{
+            fontSize: 12,
+            color: "var(--muted-foreground)",
+            marginTop: 8,
+          }}
+        >
+          ⚠ Regenerating will immediately invalidate your current key.
+        </p>
+
+        {/* Success Message */}
+        {successMsg && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginTop: 16,
+              padding: "12px 16px",
+              backgroundColor: "#f0fdf4",
+              border: "1px solid #bbf7d0",
+              borderRadius: 8,
+              fontSize: 13,
+              color: "#16a34a",
+            }}
+          >
+            <CheckCircle2 size={16} color="#16a34a" />
+            {successMsg}
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </div>
   );
 }

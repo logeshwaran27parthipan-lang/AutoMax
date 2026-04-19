@@ -30,10 +30,10 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
-function statusColor(status: string) {
-  if (status === "completed") return { bg: "bg-green-100", text: "text-green-700", dot: "bg-green-500" };
-  if (status === "failed") return { bg: "bg-red-100", text: "text-red-700", dot: "bg-red-500" };
-  return { bg: "bg-yellow-100", text: "text-yellow-700", dot: "bg-yellow-500" };
+function getStatusStyles(status: string) {
+  if (status === "completed") return { bg: "#dcfce7", text: "#166534", dot: "#22c55e" };
+  if (status === "failed") return { bg: "#fee2e2", text: "#991b1b", dot: "#ef4444" };
+  return { bg: "#fef3c7", text: "#92400e", dot: "#f59e0b" };
 }
 
 export default function WorkflowsPage() {
@@ -49,6 +49,7 @@ export default function WorkflowsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [schedulePreset, setSchedulePreset] = useState("0 9 * * *");
   const [waKeyword, setWaKeyword] = useState("");
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
   useEffect(() => { fetchWorkflows(); }, []);
 
@@ -117,18 +118,39 @@ export default function WorkflowsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div 
+      className="max-w-4xl mx-auto py-8 px-4"
+      style={{
+        backgroundColor: "var(--background)",
+        color: "var(--foreground)",
+        minHeight: "100vh"
+      }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Workflows</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
+          <h1 style={{ fontSize: "24px", fontWeight: 600, color: "var(--foreground)" }}>
+            Workflows
+          </h1>
+          <p style={{ color: "rgba(26,26,46,0.6)", fontSize: "14px", marginTop: "2px" }}>
             {loading ? "Loading..." : `${workflows.length} workflow${workflows.length !== 1 ? "s" : ""}`}
           </p>
         </div>
         <button
           onClick={() => { setShowForm(!showForm); setError(""); }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors"
+          style={{
+            backgroundColor: "var(--primary)",
+            color: "#fff",
+            borderRadius: "10px",
+            padding: "10px 16px",
+            fontWeight: 500,
+            fontSize: "14px",
+            border: "none",
+            cursor: "pointer",
+            transition: "background-color 0.2s ease"
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#d97706"}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--primary)"}
         >
           + New Workflow
         </button>
@@ -136,29 +158,74 @@ export default function WorkflowsPage() {
 
       {/* Create form */}
       {showForm && (
-        <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">New Workflow</h2>
+        <div 
+          style={{
+            backgroundColor: "#fff",
+            border: "1px solid var(--border)",
+            borderRadius: "12px",
+            padding: "24px",
+            marginBottom: "24px",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+          }}
+        >
+          <h2 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "16px", color: "var(--foreground)" }}>
+            New Workflow
+          </h2>
           {error && (
-            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>
+            <div style={{ 
+              backgroundColor: "#fee2e2", 
+              color: "#dc2626", 
+              padding: "12px 16px", 
+              borderRadius: "10px", 
+              fontSize: "14px", 
+              marginBottom: "16px" 
+            }}>
+              {error}
+            </div>
           )}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <label style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "var(--foreground)", marginBottom: "4px" }}>
+                Name
+              </label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && createWorkflow()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  border: "1px solid var(--border)",
+                  borderRadius: "10px",
+                  fontSize: "14px",
+                  outline: "none",
+                  transition: "border-color 0.2s ease"
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = "var(--primary)"}
+                onBlur={(e) => e.currentTarget.style.borderColor = "var(--border)"}
                 placeholder="e.g. Lead Follow-up"
                 autoFocus
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-gray-400 font-normal">(optional)</span></label>
+              <label style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "var(--foreground)", marginBottom: "4px" }}>
+                Description <span style={{ color: "rgba(26,26,46,0.4)", fontWeight: 400 }}>(optional)</span>
+              </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  border: "1px solid var(--border)",
+                  borderRadius: "10px",
+                  fontSize: "14px",
+                  outline: "none",
+                  resize: "none",
+                  transition: "border-color 0.2s ease"
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = "var(--primary)"}
+                onBlur={(e) => e.currentTarget.style.borderColor = "var(--border)"}
                 rows={2}
                 placeholder="What does this workflow do?"
               />
@@ -166,7 +233,7 @@ export default function WorkflowsPage() {
 
             {/* Trigger Type Selector */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "var(--foreground)", marginBottom: "8px" }}>
                 How should this workflow start?
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -180,17 +247,21 @@ export default function WorkflowsPage() {
                     key={t.value}
                     type="button"
                     onClick={() => setTrigger(t.value)}
-                    className={`p-3 rounded-lg border-2 text-left transition-all ${
-                      trigger === t.value
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300 bg-white"
-                    }`}
+                    style={{
+                      padding: "12px",
+                      borderRadius: "10px",
+                      border: trigger === t.value ? "2px solid var(--primary)" : "2px solid var(--border)",
+                      backgroundColor: trigger === t.value ? "#fff7ed" : "#fff",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease"
+                    }}
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span>{t.icon}</span>
-                      <span className="text-sm font-medium text-gray-800">{t.label}</span>
+                      <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--foreground)" }}>{t.label}</span>
                     </div>
-                    <p className="text-xs text-gray-500">{t.desc}</p>
+                    <p style={{ fontSize: "12px", color: "rgba(26,26,46,0.6)" }}>{t.desc}</p>
                   </button>
                 ))}
               </div>
@@ -198,14 +269,29 @@ export default function WorkflowsPage() {
 
             {/* Schedule config */}
             {trigger === "schedule" && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
-                <p className="text-sm font-medium text-yellow-800">⏰ Schedule Settings</p>
+              <div style={{
+                backgroundColor: "#fef3c7",
+                border: "1px solid #fcd34d",
+                borderRadius: "10px",
+                padding: "16px"
+              }}>
+                <p style={{ fontSize: "14px", fontWeight: 500, color: "#92400e", marginBottom: "12px" }}>⏰ Schedule Settings</p>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Run frequency</label>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: "rgba(26,26,46,0.6)", marginBottom: "4px" }}>
+                    Run frequency
+                  </label>
                   <select
                     value={schedulePreset}
                     onChange={(e) => setSchedulePreset(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      border: "1px solid var(--border)",
+                      borderRadius: "10px",
+                      fontSize: "14px",
+                      backgroundColor: "#fff",
+                      outline: "none"
+                    }}
                   >
                     <option value="0 9 * * *">Every day at 9:00 AM</option>
                     <option value="0 9 * * 1">Every Monday at 9:00 AM</option>
@@ -220,22 +306,34 @@ export default function WorkflowsPage() {
 
             {/* WhatsApp config */}
             {trigger === "whatsapp" && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
-                <p className="text-sm font-medium text-green-800">💬 WhatsApp Trigger Settings</p>
+              <div style={{
+                backgroundColor: "#dcfce7",
+                border: "1px solid #86efac",
+                borderRadius: "10px",
+                padding: "16px"
+              }}>
+                <p style={{ fontSize: "14px", fontWeight: 500, color: "#166534", marginBottom: "12px" }}>💬 WhatsApp Trigger Settings</p>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Trigger keyword <span className="text-gray-400">(optional — leave empty to trigger on any message)</span>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: "rgba(26,26,46,0.6)", marginBottom: "4px" }}>
+                    Trigger keyword <span style={{ color: "rgba(26,26,46,0.4)" }}>(optional — leave empty to trigger on any message)</span>
                   </label>
                   <input
                     value={waKeyword}
                     onChange={(e) => setWaKeyword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      border: "1px solid var(--border)",
+                      borderRadius: "10px",
+                      fontSize: "14px",
+                      outline: "none"
+                    }}
                     placeholder="e.g. hello, order, help"
                   />
                 </div>
-                <p className="text-xs text-gray-500">
+                <p style={{ fontSize: "12px", color: "rgba(26,26,46,0.6)", marginTop: "12px" }}>
                   Make sure WAHA webhook is pointed to:{" "}
-                  <code className="bg-white px-1 rounded border">
+                  <code style={{ backgroundColor: "#fff", padding: "2px 6px", borderRadius: "4px", border: "1px solid var(--border)" }}>
                     {typeof window !== "undefined" ? `${window.location.origin}/api/whatsapp/incoming` : "/api/whatsapp/incoming"}
                   </code>
                 </p>
@@ -244,10 +342,15 @@ export default function WorkflowsPage() {
 
             {/* Webhook info */}
             {trigger === "webhook" && (
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
-                <p className="text-sm font-medium text-blue-800 mb-1">🔗 Webhook Trigger</p>
-                <p className="text-xs text-gray-600">
-                  After creating, you'll get a unique webhook URL to paste into any form builder
+              <div style={{
+                backgroundColor: "#fff7ed",
+                border: "1px solid #fed7aa",
+                borderRadius: "10px",
+                padding: "16px"
+              }}>
+                <p style={{ fontSize: "14px", fontWeight: 500, color: "#92400e", marginBottom: "4px" }}>🔗 Webhook Trigger</p>
+                <p style={{ fontSize: "12px", color: "rgba(26,26,46,0.6)" }}>
+                  After creating, you&apos;ll get a unique webhook URL to paste into any form builder
                   (Tally, Typeform, Google Forms) or CRM system.
                 </p>
               </div>
@@ -257,13 +360,37 @@ export default function WorkflowsPage() {
               <button
                 onClick={createWorkflow}
                 disabled={creating}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium transition-colors"
+                style={{
+                  padding: "10px 16px",
+                  backgroundColor: "var(--primary)",
+                  color: "#fff",
+                  borderRadius: "10px",
+                  fontWeight: 500,
+                  fontSize: "14px",
+                  border: "none",
+                  cursor: creating ? "not-allowed" : "pointer",
+                  opacity: creating ? 0.5 : 1,
+                  transition: "background-color 0.2s ease"
+                }}
+                onMouseEnter={(e) => !creating && (e.currentTarget.style.backgroundColor = "#d97706")}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--primary)"}
               >
                 {creating ? "Creating..." : "Create Workflow"}
               </button>
               <button
                 onClick={() => { setShowForm(false); setError(""); }}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm transition-colors"
+                style={{
+                  padding: "10px 16px",
+                  backgroundColor: "#f3f4f6",
+                  color: "var(--foreground)",
+                  borderRadius: "10px",
+                  fontSize: "14px",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "background-color 0.2s ease"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#e5e7eb"}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#f3f4f6"}
               >
                 Cancel
               </button>
@@ -274,21 +401,52 @@ export default function WorkflowsPage() {
 
       {/* Loading */}
       {loading && (
-        <div className="flex items-center gap-3 text-gray-400 py-12 justify-center">
-          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="flex items-center gap-3 py-12 justify-center" style={{ color: "rgba(26,26,46,0.4)" }}>
+          <div 
+            className="w-5 h-5 rounded-full animate-spin"
+            style={{ 
+              border: "2px solid var(--border)", 
+              borderTopColor: "var(--primary)" 
+            }} 
+          />
           Loading workflows...
         </div>
       )}
 
       {/* Empty state */}
       {!loading && workflows.length === 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl p-16 text-center shadow-sm">
-          <div className="text-5xl mb-4">⚡</div>
-          <p className="text-xl font-semibold text-gray-800 mb-2">No workflows yet</p>
-          <p className="text-gray-500 text-sm mb-6">Create your first automation and connect it to any webhook</p>
+        <div 
+          style={{
+            backgroundColor: "#fff",
+            border: "1px solid var(--border)",
+            borderRadius: "12px",
+            padding: "64px",
+            textAlign: "center",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+          }}
+        >
+          <div style={{ fontSize: "48px", marginBottom: "16px" }}>⚡</div>
+          <p style={{ fontSize: "20px", fontWeight: 600, color: "var(--foreground)", marginBottom: "8px" }}>
+            No workflows yet
+          </p>
+          <p style={{ color: "rgba(26,26,46,0.6)", fontSize: "14px", marginBottom: "24px" }}>
+            Create your first automation and connect it to any webhook
+          </p>
           <button
             onClick={() => setShowForm(true)}
-            className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "var(--primary)",
+              color: "#fff",
+              borderRadius: "10px",
+              fontWeight: 500,
+              fontSize: "14px",
+              border: "none",
+              cursor: "pointer",
+              transition: "background-color 0.2s ease"
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#d97706"}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--primary)"}
           >
             + Create Workflow
           </button>
@@ -301,25 +459,47 @@ export default function WorkflowsPage() {
           {workflows.map((w) => {
             const stepCount = Array.isArray(w.steps) ? w.steps.length : 0;
             const triggerLabel = typeof w.triggers === "string" ? w.triggers : (w.triggers as any)?.type || "webhook";
-            const lastStatus = w.lastRun ? statusColor(w.lastRun.status) : null;
+            const lastStatus = w.lastRun ? getStatusStyles(w.lastRun.status) : null;
+            const isHovered = hoveredCard === w.id;
 
             return (
-              <div key={w.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div 
+                key={w.id} 
+                style={{
+                  backgroundColor: "#fff",
+                  border: "1px solid var(--border)",
+                  borderRadius: "12px",
+                  padding: "20px",
+                  transition: "all 0.2s ease",
+                  boxShadow: isHovered ? "0 4px 12px rgba(0,0,0,0.06)" : "0 1px 2px rgba(0,0,0,0.05)"
+                }}
+                onMouseEnter={() => setHoveredCard(w.id)}
+                onMouseLeave={() => setHoveredCard(null)}
+              >
                 <div className="flex items-start justify-between gap-4">
 
                   {/* Left content */}
                   <div className="flex-1 min-w-0">
                     {/* Name + status */}
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="text-base font-semibold text-gray-900">{w.name}</h3>
+                      <h3 style={{ fontSize: "16px", fontWeight: 600, color: "var(--foreground)" }}>{w.name}</h3>
                       {lastStatus ? (
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${lastStatus.bg} ${lastStatus.text}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${lastStatus.dot}`} />
+                        <span 
+                          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                          style={{ backgroundColor: lastStatus.bg, color: lastStatus.text }}
+                        >
+                          <span 
+                            className="w-1.5 h-1.5 rounded-full" 
+                            style={{ backgroundColor: lastStatus.dot }} 
+                          />
                           {w.lastRun!.status}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                        <span 
+                          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                          style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#9ca3af" }} />
                           never run
                         </span>
                       )}
@@ -327,14 +507,16 @@ export default function WorkflowsPage() {
 
                     {/* Description */}
                     {w.description && (
-                      <p className="text-gray-500 text-sm mb-2 truncate">{w.description}</p>
+                      <p className="truncate" style={{ color: "rgba(26,26,46,0.6)", fontSize: "14px", marginBottom: "8px" }}>
+                        {w.description}
+                      </p>
                     )}
 
                     {/* Meta row */}
-                    <div className="flex items-center gap-4 text-xs text-gray-400 mb-3 flex-wrap">
+                    <div className="flex items-center gap-4 text-xs flex-wrap mb-3" style={{ color: "rgba(26,26,46,0.4)" }}>
                       <span>Created {new Date(w.createdAt).toLocaleDateString()}</span>
                       <span>
-                        Trigger: <code className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{triggerLabel}</code>
+                        Trigger: <code style={{ backgroundColor: "#f3f4f6", color: "rgba(26,26,46,0.6)", padding: "2px 6px", borderRadius: "4px" }}>{triggerLabel}</code>
                       </span>
                       <span>{stepCount} step{stepCount !== 1 ? "s" : ""}</span>
                       <span>{w.runCount} run{w.runCount !== 1 ? "s" : ""}</span>
@@ -346,20 +528,50 @@ export default function WorkflowsPage() {
                     {/* Trigger info row */}
                     {(w.triggers as any)?.type === "webhook" || typeof w.triggers === "string" ? (
                       <div className="flex items-center gap-2">
-                        <code className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-gray-500 flex-1 truncate">
+                        <code 
+                          className="flex-1 truncate"
+                          style={{ 
+                            fontSize: "12px",
+                            backgroundColor: "#f9fafb", 
+                            border: "1px solid var(--border)", 
+                            borderRadius: "8px", 
+                            padding: "8px 12px", 
+                            color: "rgba(26,26,46,0.6)" 
+                          }}
+                        >
                           {typeof window !== "undefined"
                             ? `${window.location.origin}/api/webhook/${w.id}`
                             : `/api/webhook/${w.id}`}
                         </code>
                         <button
                           onClick={() => copyWebhookUrl(w.id)}
-                          className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-200 whitespace-nowrap transition-colors"
+                          style={{
+                            padding: "8px 12px",
+                            fontSize: "12px",
+                            backgroundColor: "#f3f4f6",
+                            border: "1px solid var(--border)",
+                            borderRadius: "8px",
+                            whiteSpace: "nowrap",
+                            cursor: "pointer",
+                            transition: "background-color 0.2s ease"
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#e5e7eb"}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#f3f4f6"}
                         >
                           {copiedId === w.id ? "✅ Copied" : "Copy URL"}
                         </button>
                       </div>
                     ) : (
-                      <div className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5">
+                      <div 
+                        style={{ 
+                          fontSize: "12px",
+                          color: "rgba(26,26,46,0.4)",
+                          backgroundColor: "#f9fafb", 
+                          border: "1px solid var(--border)", 
+                          borderRadius: "8px", 
+                          padding: "8px 12px" 
+                        }}
+                      >
                         {(w.triggers as any)?.type === "schedule" && `⏰ Cron: ${(w.triggers as any)?.cron}`}
                         {(w.triggers as any)?.type === "whatsapp" && `💬 Keyword: ${(w.triggers as any)?.keyword || "any message"}`}
                         {(w.triggers as any)?.type === "manual" && `🖐 Manual — click Run Now`}
@@ -371,14 +583,38 @@ export default function WorkflowsPage() {
                   <div className="flex flex-col gap-2 shrink-0">
                     <Link
                       href={`/dashboard/workflows/${w.id}`}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium text-center transition-colors"
+                      style={{
+                        padding: "10px 16px",
+                        backgroundColor: "var(--primary)",
+                        color: "#fff",
+                        borderRadius: "10px",
+                        fontWeight: 500,
+                        fontSize: "14px",
+                        textAlign: "center",
+                        textDecoration: "none",
+                        transition: "background-color 0.2s ease"
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#d97706"}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--primary)"}
                     >
                       Open
                     </Link>
                     <button
                       onClick={() => deleteWorkflow(w.id)}
                       disabled={deletingId === w.id}
-                      className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-sm disabled:opacity-50 transition-colors"
+                      style={{
+                        padding: "10px 16px",
+                        backgroundColor: "#fef2f2",
+                        color: "#dc2626",
+                        borderRadius: "10px",
+                        fontSize: "14px",
+                        border: "none",
+                        cursor: deletingId === w.id ? "not-allowed" : "pointer",
+                        opacity: deletingId === w.id ? 0.5 : 1,
+                        transition: "background-color 0.2s ease"
+                      }}
+                      onMouseEnter={(e) => deletingId !== w.id && (e.currentTarget.style.backgroundColor = "#fee2e2")}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#fef2f2"}
                     >
                       {deletingId === w.id ? "..." : "Delete"}
                     </button>
