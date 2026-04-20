@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const membership = await prisma.organizationMember.findFirst({
       where: {
         userId: tokenPayload.userId,
-        role: "owner",
+        role: "OWNER",
       },
       include: {
         org: true,
@@ -77,7 +77,7 @@ export async function PATCH(req: NextRequest) {
     const membership = await prisma.organizationMember.findFirst({
       where: {
         userId: tokenPayload.userId,
-        role: "owner",
+        role: "OWNER",
       },
       include: {
         org: true,
