@@ -51,11 +51,20 @@ export default function EmailPage() {
   }
 
   return (
-    <div style={{ padding: 32, maxWidth: 800, margin: "0 auto" }}>
+    <div
+      style={{
+        paddingTop: 16,
+        paddingBottom: 32,
+        paddingLeft: "max(16px, 5%)",
+        paddingRight: "max(16px, 5%)",
+        maxWidth: 800,
+        margin: "0 auto",
+      }}
+    >
       {/* Page Header */}
       <h1
         style={{
-          fontSize: 28,
+          fontSize: "clamp(20px, 5vw, 28px)",
           fontWeight: 700,
           color: "var(--foreground)",
           marginBottom: 8,
@@ -65,9 +74,9 @@ export default function EmailPage() {
       </h1>
       <p
         style={{
-          fontSize: 14,
+          fontSize: "clamp(13px, 3.5vw, 14px)",
           color: "var(--muted-foreground)",
-          marginBottom: 32,
+          marginBottom: 24,
         }}
       >
         Send a one-off email to anyone.
@@ -79,7 +88,7 @@ export default function EmailPage() {
           backgroundColor: "var(--card)",
           border: "1px solid var(--border)",
           borderRadius: 12,
-          padding: 24,
+          padding: "clamp(16px, 4vw, 24px)",
         }}
       >
         {/* Card Header */}
@@ -87,9 +96,9 @@ export default function EmailPage() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
-            marginBottom: 24,
-            paddingBottom: 16,
+            gap: 8,
+            marginBottom: 16,
+            paddingBottom: 12,
             borderBottom: "1px solid var(--border)",
           }}
         >
@@ -108,7 +117,7 @@ export default function EmailPage() {
           </div>
           <span
             style={{
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: 600,
               color: "var(--foreground)",
             }}
@@ -120,14 +129,14 @@ export default function EmailPage() {
         {/* Form */}
         <form onSubmit={sendEmail}>
           {/* To Field */}
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 12 }}>
             <label
               style={{
                 display: "block",
                 fontSize: 13,
                 fontWeight: 500,
                 color: "var(--muted-foreground)",
-                marginBottom: 6,
+                marginBottom: 4,
               }}
             >
               To
@@ -140,10 +149,10 @@ export default function EmailPage() {
               required
               style={{
                 width: "100%",
-                padding: "10px 14px",
+                padding: "8px 12px",
                 border: "1px solid var(--border)",
                 borderRadius: 8,
-                fontSize: 14,
+                fontSize: 13,
                 color: "var(--foreground)",
                 backgroundColor: "var(--secondary)",
                 outline: "none",
@@ -162,14 +171,14 @@ export default function EmailPage() {
           </div>
 
           {/* Subject Field */}
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 12 }}>
             <label
               style={{
                 display: "block",
                 fontSize: 13,
                 fontWeight: 500,
                 color: "var(--muted-foreground)",
-                marginBottom: 6,
+                marginBottom: 4,
               }}
             >
               Subject
@@ -182,10 +191,10 @@ export default function EmailPage() {
               required
               style={{
                 width: "100%",
-                padding: "10px 14px",
+                padding: "8px 12px",
                 border: "1px solid var(--border)",
                 borderRadius: 8,
-                fontSize: 14,
+                fontSize: 13,
                 color: "var(--foreground)",
                 backgroundColor: "var(--secondary)",
                 outline: "none",
@@ -204,14 +213,14 @@ export default function EmailPage() {
           </div>
 
           {/* Message Field */}
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 12 }}>
             <label
               style={{
                 display: "block",
                 fontSize: 13,
                 fontWeight: 500,
                 color: "var(--muted-foreground)",
-                marginBottom: 6,
+                marginBottom: 4,
               }}
             >
               Message
@@ -223,15 +232,15 @@ export default function EmailPage() {
               required
               style={{
                 width: "100%",
-                padding: "10px 14px",
+                padding: "8px 12px",
                 border: "1px solid var(--border)",
                 borderRadius: 8,
-                fontSize: 14,
+                fontSize: 13,
                 color: "var(--foreground)",
                 backgroundColor: "var(--secondary)",
                 outline: "none",
                 boxSizing: "border-box",
-                height: 160,
+                height: 120,
                 resize: "vertical",
                 transition: "border-color 0.2s",
               }}
@@ -255,13 +264,13 @@ export default function EmailPage() {
               color: loading ? "var(--foreground)" : "white",
               border: "none",
               borderRadius: 8,
-              padding: "11px 24px",
-              fontSize: 14,
+              padding: "9px 20px",
+              fontSize: 13,
               fontWeight: 600,
               cursor: loading ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
-              gap: 8,
+              gap: 6,
               transition: "all 0.2s",
             }}
             onMouseEnter={(e) => {

@@ -38,6 +38,16 @@ export default function DashboardLayout({
   const [orgName, setOrgName] = useState("My Workspace");
   const [initials, setInitials] = useState("MW");
   const [plan, setPlan] = useState("Free Plan");
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    function checkMobile() {
+      setIsMobile(window.innerWidth < 768);
+    }
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     fetch("/api/org/api-key")
@@ -74,9 +84,10 @@ export default function DashboardLayout({
     <div
       style={{
         display: "flex",
-        flexDirection: "row",
+        flexDirection: isMobile ? "column" : "row",
         height: "100vh",
         width: "100%",
+        overflow: isMobile ? "hidden" : "visible",
       }}
     >
       <aside
@@ -84,7 +95,7 @@ export default function DashboardLayout({
           width: 256,
           minWidth: 256,
           height: "100vh",
-          display: "flex",
+          display: isMobile ? "none" : "flex",
           flexDirection: "column",
           backgroundColor: "var(--sidebar)",
           borderRight: "1px solid var(--sidebar-border)",
@@ -349,15 +360,168 @@ export default function DashboardLayout({
         </nav>
       </aside>
 
+      {isMobile && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 16px",
+            height: 56,
+            backgroundColor: "var(--sidebar)",
+            borderBottom: "1px solid var(--sidebar-border)",
+            zIndex: 40,
+          }}
+        >
+          <Link
+            href="/"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              textDecoration: "none",
+            }}
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 7,
+                backgroundColor: "var(--primary)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Zap size={16} color="white" />
+            </div>
+            <span
+              style={{
+                fontSize: 18,
+                fontWeight: 600,
+                color: "var(--sidebar-foreground)",
+              }}
+            >
+              Auto<span style={{ color: "var(--primary)" }}>Max</span>
+            </span>
+          </Link>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Link
+              href="/dashboard/settings"
+              style={{
+                padding: "6px 10px",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 500,
+                color: "var(--muted-foreground)",
+                textDecoration: "none",
+                backgroundColor: isActive("/dashboard/settings")
+                  ? "var(--accent)"
+                  : "transparent",
+              }}
+            >
+              Settings
+            </Link>
+            <Link
+              href="/dashboard/billing"
+              style={{
+                padding: "6px 10px",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 500,
+                color: "var(--muted-foreground)",
+                textDecoration: "none",
+                backgroundColor: isActive("/dashboard/billing")
+                  ? "var(--accent)"
+                  : "transparent",
+              }}
+            >
+              Billing
+            </Link>
+            <button
+              onClick={handleLogout}
+              style={{
+                padding: "6px 10px",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 500,
+                color: "white",
+                backgroundColor: "var(--primary)",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
+
       <main
         style={{
           flex: 1,
           overflowY: "auto",
           backgroundColor: "var(--background)",
+          paddingTop: isMobile ? "56px" : 0,
+          paddingBottom: isMobile ? "72px" : 0,
+          minHeight: isMobile ? 0 : "auto",
         }}
       >
         {children}
       </main>
+
+      {isMobile && (
+        <nav
+          style={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 64,
+            backgroundColor: "var(--sidebar)",
+            borderTop: "1px solid var(--sidebar-border)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-around",
+            zIndex: 50,
+            paddingBottom: "env(safe-area-inset-bottom)",
+          }}
+        >
+          {navItems.map((item) => {
+            const active = isActive(item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 3,
+                  padding: "6px 8px",
+                  textDecoration: "none",
+                  color: active ? "var(--primary)" : "var(--muted-foreground)",
+                  fontSize: 9,
+                  fontWeight: active ? 600 : 400,
+                  minWidth: 48,
+                  textAlign: "center",
+                }}
+              >
+                <Icon
+                  size={20}
+                  color={active ? "var(--primary)" : "var(--muted-foreground)"}
+                />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
     </div>
   );
 }

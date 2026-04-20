@@ -57,11 +57,20 @@ export default function BillingPage() {
   ];
 
   return (
-    <div style={{ padding: 32, maxWidth: 900, margin: "0 auto" }}>
+    <div
+      style={{
+        paddingTop: 16,
+        paddingBottom: 32,
+        paddingLeft: "max(16px, 5%)",
+        paddingRight: "max(16px, 5%)",
+        maxWidth: 900,
+        margin: "0 auto",
+      }}
+    >
       {/* Page Header */}
       <h1
         style={{
-          fontSize: 28,
+          fontSize: "clamp(20px, 5vw, 28px)",
           fontWeight: 700,
           color: "var(--foreground)",
           marginBottom: 8,
@@ -71,9 +80,9 @@ export default function BillingPage() {
       </h1>
       <p
         style={{
-          fontSize: 14,
+          fontSize: "clamp(13px, 3.5vw, 14px)",
           color: "var(--muted-foreground)",
-          marginBottom: 32,
+          marginBottom: 24,
         }}
       >
         Manage your AutoMax subscription.

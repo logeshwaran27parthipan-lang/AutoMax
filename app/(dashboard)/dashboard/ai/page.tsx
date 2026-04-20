@@ -37,11 +37,20 @@ export default function AIPage() {
   }
 
   return (
-    <div style={{ padding: 32, maxWidth: 900, margin: "0 auto" }}>
+    <div
+      style={{
+        paddingTop: 16,
+        paddingBottom: 32,
+        paddingLeft: "max(16px, 5%)",
+        paddingRight: "max(16px, 5%)",
+        maxWidth: 900,
+        margin: "0 auto",
+      }}
+    >
       {/* Page Header */}
       <h1
         style={{
-          fontSize: 28,
+          fontSize: "clamp(20px, 5vw, 28px)",
           fontWeight: 700,
           color: "var(--foreground)",
           marginBottom: 8,
@@ -51,9 +60,9 @@ export default function AIPage() {
       </h1>
       <p
         style={{
-          fontSize: 14,
+          fontSize: "clamp(13px, 3.5vw, 14px)",
           color: "var(--muted-foreground)",
-          marginBottom: 32,
+          marginBottom: 24,
         }}
       >
         Generate content with powerful AI models.
@@ -65,7 +74,7 @@ export default function AIPage() {
           backgroundColor: "var(--card)",
           border: "1px solid var(--border)",
           borderRadius: 12,
-          padding: 24,
+          padding: "clamp(16px, 4vw, 24px)",
           marginBottom: 24,
         }}
       >
@@ -74,9 +83,9 @@ export default function AIPage() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
-            marginBottom: 24,
-            paddingBottom: 16,
+            gap: 8,
+            marginBottom: 16,
+            paddingBottom: 12,
             borderBottom: "1px solid var(--border)",
           }}
         >
@@ -95,7 +104,7 @@ export default function AIPage() {
           </div>
           <span
             style={{
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: 600,
               color: "var(--foreground)",
             }}
@@ -105,14 +114,14 @@ export default function AIPage() {
         </div>
 
         {/* Model Selection */}
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 12 }}>
           <label
             style={{
               display: "block",
               fontSize: 13,
               fontWeight: 500,
               color: "var(--muted-foreground)",
-              marginBottom: 12,
+              marginBottom: 8,
             }}
           >
             Select Model
@@ -130,7 +139,9 @@ export default function AIPage() {
               onClick={() => setModel("groq")}
               style={{
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 12,
                 padding: 16,
                 borderRadius: 10,
@@ -173,7 +184,7 @@ export default function AIPage() {
                   color={model === "groq" ? "white" : "var(--muted-foreground)"}
                 />
               </div>
-              <div style={{ textAlign: "left", flex: 1 }}>
+              <div style={{ textAlign: "center", flex: 1 }}>
                 <p
                   style={{
                     fontSize: 14,
@@ -201,7 +212,9 @@ export default function AIPage() {
               onClick={() => setModel("gemini")}
               style={{
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 12,
                 padding: 16,
                 borderRadius: 10,
@@ -246,7 +259,7 @@ export default function AIPage() {
                   }
                 />
               </div>
-              <div style={{ textAlign: "left", flex: 1 }}>
+              <div style={{ textAlign: "center", flex: 1 }}>
                 <p
                   style={{
                     fontSize: 14,
@@ -271,14 +284,14 @@ export default function AIPage() {
         </div>
 
         {/* Prompt Input */}
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 12 }}>
           <label
             style={{
               display: "block",
               fontSize: 13,
               fontWeight: 500,
               color: "var(--muted-foreground)",
-              marginBottom: 8,
+              marginBottom: 4,
             }}
           >
             Your Prompt
@@ -289,15 +302,15 @@ export default function AIPage() {
             placeholder="Write a follow-up email for a new lead..."
             style={{
               width: "100%",
-              padding: "12px 14px",
+              padding: "8px 12px",
               border: "1px solid var(--border)",
               borderRadius: 8,
-              fontSize: 14,
+              fontSize: 13,
               color: "var(--foreground)",
               backgroundColor: "var(--secondary)",
               outline: "none",
               boxSizing: "border-box",
-              height: 160,
+              height: 120,
               resize: "vertical",
               fontFamily: "inherit",
               transition: "border-color 0.2s",
@@ -323,14 +336,14 @@ export default function AIPage() {
             color: "white",
             border: "none",
             borderRadius: 8,
-            padding: "12px 24px",
-            fontSize: 14,
+            padding: "9px 20px",
+            fontSize: 13,
             fontWeight: 600,
             cursor: loading ? "not-allowed" : "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: 8,
+            gap: 6,
             transition: "all 0.2s",
           }}
           onMouseEnter={(e) => {

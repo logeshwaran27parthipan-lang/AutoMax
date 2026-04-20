@@ -84,19 +84,18 @@ export default function DashboardPage() {
     totalRuns > 0 ? Math.round((successRuns / totalRuns) * 100) : 0;
 
   return (
-    <div style={{ padding: 32, maxWidth: 1200, margin: "0 auto" }}>
+    <div style={{ padding: "16px", maxWidth: 1200, margin: "0 auto" }}>
       {/* Header */}
       <div
+        className="dash-header"
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
+          gap: 8,
         }}
       >
         <div>
           <h1
             style={{
-              fontSize: 28,
+              fontSize: "clamp(20px, 5vw, 28px)",
               fontWeight: 700,
               color: "var(--foreground)",
             }}
@@ -105,9 +104,9 @@ export default function DashboardPage() {
           </h1>
           <p
             style={{
-              fontSize: 14,
+              fontSize: "clamp(12px, 3vw, 14px)",
               color: "var(--muted-foreground)",
-              marginTop: 4,
+              marginTop: 2,
             }}
           >
             Welcome back! Here's what's happening with your automations.
@@ -120,27 +119,26 @@ export default function DashboardPage() {
             color: "white",
             border: "none",
             borderRadius: 8,
-            padding: "10px 20px",
-            fontSize: 14,
+            padding: "8px 16px",
+            fontSize: "clamp(12px, 2.5vw, 14px)",
             fontWeight: 600,
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: 6,
+            whiteSpace: "nowrap",
           }}
         >
-          <Plus size={16} />
+          <Plus size={14} />
           New Workflow
         </button>
       </div>
 
       {/* Stats Cards */}
       <div
+        className="dash-stats"
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 16,
-          marginTop: 32,
+          marginTop: 20,
         }}
       >
         {/* Card 1: Total Workflows */}
@@ -149,38 +147,38 @@ export default function DashboardPage() {
             backgroundColor: "var(--card)",
             border: "1px solid var(--border)",
             borderRadius: 12,
-            padding: 24,
+            padding: "clamp(12px, 3vw, 20px)",
           }}
         >
           <div
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
+              width: 32,
+              height: 32,
+              borderRadius: 8,
               backgroundColor: "#fef3c7",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              marginBottom: 16,
+              marginBottom: 12,
             }}
           >
-            <Zap size={20} color="var(--primary)" />
+            <Zap size={16} color="var(--primary)" />
           </div>
           <div
             style={{
-              fontSize: 32,
+              fontSize: "clamp(24px, 5vw, 32px)",
               fontWeight: 700,
               color: "var(--foreground)",
-              marginBottom: 4,
+              marginBottom: 2,
             }}
           >
             {totalWorkflows}
           </div>
           <div
             style={{
-              fontSize: 14,
+              fontSize: "clamp(12px, 3vw, 14px)",
               color: "var(--muted-foreground)",
-              marginBottom: 8,
+              marginBottom: 4,
             }}
           >
             Total Workflows
@@ -189,12 +187,12 @@ export default function DashboardPage() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 4,
-              fontSize: 12,
+              gap: 3,
+              fontSize: 11,
               color: "#16a34a",
             }}
           >
-            <ArrowUpRight size={14} />
+            <ArrowUpRight size={12} />
             {activeWorkflows} active
           </div>
         </div>
@@ -205,45 +203,45 @@ export default function DashboardPage() {
             backgroundColor: "var(--card)",
             border: "1px solid var(--border)",
             borderRadius: 12,
-            padding: 24,
+            padding: "clamp(12px, 3vw, 20px)",
           }}
         >
           <div
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
+              width: 32,
+              height: 32,
+              borderRadius: 8,
               backgroundColor: "#dcfce7",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              marginBottom: 16,
+              marginBottom: 12,
             }}
           >
-            <CheckCircle2 size={20} color="#16a34a" />
+            <CheckCircle2 size={16} color="#16a34a" />
           </div>
           <div
             style={{
-              fontSize: 32,
+              fontSize: "clamp(24px, 5vw, 32px)",
               fontWeight: 700,
               color: "var(--foreground)",
-              marginBottom: 4,
+              marginBottom: 2,
             }}
           >
             {activeWorkflows}
           </div>
           <div
             style={{
-              fontSize: 14,
+              fontSize: "clamp(12px, 3vw, 14px)",
               color: "var(--muted-foreground)",
-              marginBottom: 8,
+              marginBottom: 4,
             }}
           >
             Active Workflows
           </div>
           <div
             style={{
-              fontSize: 12,
+              fontSize: 11,
               color: "#6b7280",
             }}
           >
@@ -257,38 +255,38 @@ export default function DashboardPage() {
             backgroundColor: "var(--card)",
             border: "1px solid var(--border)",
             borderRadius: 12,
-            padding: 24,
+            padding: "clamp(12px, 3vw, 20px)",
           }}
         >
           <div
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
+              width: 32,
+              height: 32,
+              borderRadius: 8,
               backgroundColor: "#dbeafe",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              marginBottom: 16,
+              marginBottom: 12,
             }}
           >
-            <Clock size={20} color="#3b82f6" />
+            <Clock size={16} color="#3b82f6" />
           </div>
           <div
             style={{
-              fontSize: 32,
+              fontSize: "clamp(24px, 5vw, 32px)",
               fontWeight: 700,
               color: "var(--foreground)",
-              marginBottom: 4,
+              marginBottom: 2,
             }}
           >
             {totalRuns}
           </div>
           <div
             style={{
-              fontSize: 14,
+              fontSize: "clamp(12px, 3vw, 14px)",
               color: "var(--muted-foreground)",
-              marginBottom: 8,
+              marginBottom: 4,
             }}
           >
             Recent Runs
@@ -297,8 +295,8 @@ export default function DashboardPage() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 4,
-              fontSize: 12,
+              gap: 3,
+              fontSize: 11,
               color: "#16a34a",
             }}
           >
@@ -313,29 +311,29 @@ export default function DashboardPage() {
             backgroundColor: "var(--card)",
             border: "1px solid var(--border)",
             borderRadius: 12,
-            padding: 24,
+            padding: "clamp(12px, 3vw, 20px)",
           }}
         >
           <div
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
+              width: 32,
+              height: 32,
+              borderRadius: 8,
               backgroundColor: "#ede9fe",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              marginBottom: 16,
+              marginBottom: 12,
             }}
           >
-            <Brain size={20} color="#8b5cf6" />
+            <Brain size={16} color="#8b5cf6" />
           </div>
           <div
             style={{
-              fontSize: 32,
+              fontSize: "clamp(24px, 5vw, 32px)",
               fontWeight: 700,
               color: "var(--foreground)",
-              marginBottom: 4,
+              marginBottom: 2,
             }}
           >
             {totalRuns > 0
@@ -344,9 +342,9 @@ export default function DashboardPage() {
           </div>
           <div
             style={{
-              fontSize: 14,
+              fontSize: "clamp(12px, 3vw, 14px)",
               color: "var(--muted-foreground)",
-              marginBottom: 8,
+              marginBottom: 4,
             }}
           >
             Success Rate
@@ -356,8 +354,8 @@ export default function DashboardPage() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 4,
-                fontSize: 12,
+                gap: 3,
+                fontSize: 11,
                 color: "#dc2626",
               }}
             >
@@ -449,14 +447,8 @@ export default function DashboardPage() {
             {workflows.slice(0, 5).map((workflow) => (
               <div
                 key={workflow.id}
+                className="dash-workflow-row"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "14px 16px",
-                  backgroundColor: "var(--card)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 10,
-                  marginBottom: 8,
                   gap: 16,
                 }}
               >
@@ -491,13 +483,7 @@ export default function DashboardPage() {
                     </div>
                   )}
                 </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--muted-foreground)",
-                    minWidth: 80,
-                  }}
-                >
+                <div className="dash-workflow-date">
                   {new Date(workflow.createdAt).toLocaleDateString("en-IN")}
                 </div>
                 <button
@@ -554,10 +540,8 @@ export default function DashboardPage() {
           Quick Actions
         </h2>
         <div
+          className="dash-quick-actions"
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 16,
             marginTop: 16,
           }}
         >
@@ -721,6 +705,62 @@ export default function DashboardPage() {
           }
           to {
             transform: rotate(360deg);
+          }
+        }
+        
+        .dash-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        
+        .dash-stats {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 16px;
+        }
+        
+        .dash-quick-actions {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+        }
+        
+        .dash-workflow-row {
+          display: flex;
+          align-items: center;
+          padding: 14px 16px;
+          background-color: var(--card);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          margin-bottom: 8px;
+        }
+        
+        .dash-workflow-date {
+          font-size: 12px;
+          color: var(--muted-foreground);
+          min-width: 80px;
+        }
+        
+        @media (max-width: 768px) {
+          .dash-stats {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          
+          .dash-quick-actions {
+            grid-template-columns: repeat(1, 1fr);
+          }
+          
+          .dash-workflow-date {
+            display: none;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .dash-stats {
+            grid-template-columns: repeat(1, 1fr);
           }
         }
       `}</style>

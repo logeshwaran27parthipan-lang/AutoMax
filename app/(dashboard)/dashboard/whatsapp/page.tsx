@@ -59,15 +59,23 @@ export default function WhatsAppPage() {
     }
   }
 
-  const isConnected =
-    status === "WORKING" || status === "connected";
+  const isConnected = status === "WORKING" || status === "connected";
 
   return (
-    <div style={{ padding: 32, maxWidth: 800, margin: "0 auto" }}>
+    <div
+      style={{
+        paddingTop: 16,
+        paddingBottom: 32,
+        paddingLeft: "max(16px, 5%)",
+        paddingRight: "max(16px, 5%)",
+        maxWidth: 800,
+        margin: "0 auto",
+      }}
+    >
       {/* Page Header */}
       <h1
         style={{
-          fontSize: 28,
+          fontSize: "clamp(20px, 5vw, 28px)",
           fontWeight: 700,
           color: "var(--foreground)",
           marginBottom: 8,
@@ -77,9 +85,9 @@ export default function WhatsAppPage() {
       </h1>
       <p
         style={{
-          fontSize: 14,
+          fontSize: "clamp(13px, 3.5vw, 14px)",
           color: "var(--muted-foreground)",
-          marginBottom: 32,
+          marginBottom: 24,
         }}
       >
         Send WhatsApp messages via WAHA.
@@ -287,7 +295,10 @@ export default function WhatsAppPage() {
             }}
           >
             {loading ? (
-              <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />
+              <Loader2
+                size={16}
+                style={{ animation: "spin 1s linear infinite" }}
+              />
             ) : (
               <Send size={16} />
             )}
@@ -385,7 +396,14 @@ export default function WhatsAppPage() {
         {/* Steps */}
         <div>
           {/* Step 1 */}
-          <div style={{ display: "flex", gap: 12, marginBottom: 14, alignItems: "flex-start" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              marginBottom: 14,
+              alignItems: "flex-start",
+            }}
+          >
             <div
               style={{
                 width: 24,
@@ -416,7 +434,14 @@ export default function WhatsAppPage() {
           </div>
 
           {/* Step 2 */}
-          <div style={{ display: "flex", gap: 12, marginBottom: 14, alignItems: "flex-start" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              marginBottom: 14,
+              alignItems: "flex-start",
+            }}
+          >
             <div
               style={{
                 width: 24,
@@ -464,7 +489,14 @@ export default function WhatsAppPage() {
           </div>
 
           {/* Step 3 */}
-          <div style={{ display: "flex", gap: 12, marginBottom: 14, alignItems: "flex-start" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              marginBottom: 14,
+              alignItems: "flex-start",
+            }}
+          >
             <div
               style={{
                 width: 24,
@@ -495,7 +527,14 @@ export default function WhatsAppPage() {
           </div>
 
           {/* Step 4 */}
-          <div style={{ display: "flex", gap: 12, marginBottom: 14, alignItems: "flex-start" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              marginBottom: 14,
+              alignItems: "flex-start",
+            }}
+          >
             <div
               style={{
                 width: 24,
@@ -526,7 +565,14 @@ export default function WhatsAppPage() {
           </div>
 
           {/* Step 5 */}
-          <div style={{ display: "flex", gap: 12, marginBottom: 14, alignItems: "flex-start" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              marginBottom: 14,
+              alignItems: "flex-start",
+            }}
+          >
             <div
               style={{
                 width: 24,
@@ -574,7 +620,14 @@ export default function WhatsAppPage() {
           </div>
 
           {/* Step 6 */}
-          <div style={{ display: "flex", gap: 12, marginBottom: 0, alignItems: "flex-start" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              marginBottom: 0,
+              alignItems: "flex-start",
+            }}
+          >
             <div
               style={{
                 width: 24,
