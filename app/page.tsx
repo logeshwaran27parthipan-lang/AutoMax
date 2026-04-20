@@ -142,28 +142,31 @@ function SectionBadge({ children }: { children: React.ReactNode }) {
 
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authState, setAuthState] = useState<
+    "loading" | "loggedIn" | "loggedOut"
+  >("loading");
   const [userInitials, setUserInitials] = useState("U");
 
   useEffect(() => {
-    const cached = localStorage.getItem("automax_logged_in");
-    if (cached === "true") {
-      setIsLoggedIn(true);
-      const initials = localStorage.getItem("automax_initials") || "U";
-      setUserInitials(initials);
-      // Verify token is still valid in background
-      fetch("/api/org/api-key")
-        .then((r) => {
-          if (!r.ok) {
-            localStorage.removeItem("automax_logged_in");
-            localStorage.removeItem("automax_initials");
-            setIsLoggedIn(false);
-          }
-        })
-        .catch(() => {});
-    } else {
-      setIsLoggedIn(false);
-    }
+    fetch("/api/org/api-key")
+      .then((r) => {
+        if (r.ok) return r.json();
+        throw new Error("not logged in");
+      })
+      .then((data) => {
+        const name = data.orgName || "User";
+        const initials = name
+          .split(" ")
+          .map((w: string) => w[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2);
+        setUserInitials(initials);
+        setAuthState("loggedIn");
+      })
+      .catch(() => {
+        setAuthState("loggedOut");
+      });
   }, []);
 
   return (
@@ -207,7 +210,9 @@ export default function LandingPage() {
                 Pricing
               </a>
               <div className="w-px h-5 bg-[#E5E7EB]"></div>
-              {isLoggedIn ? (
+              {authState === "loading" ? (
+                <div className="w-9 h-9 rounded-full bg-[#E5E7EB] animate-pulse" />
+              ) : authState === "loggedIn" ? (
                 <a
                   href="/dashboard"
                   title="Go to Dashboard"
@@ -273,7 +278,9 @@ export default function LandingPage() {
                   Pricing
                 </a>
                 <div className="flex flex-col gap-2 pt-4 border-t border-[#E5E7EB]">
-                  {isLoggedIn ? (
+                  {authState === "loading" ? (
+                    <div className="w-full h-10 rounded-lg bg-[#E5E7EB] animate-pulse" />
+                  ) : authState === "loggedIn" ? (
                     <a
                       href="/dashboard"
                       className="w-full text-center bg-[#F59E0B] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#D97706] transition-colors"
