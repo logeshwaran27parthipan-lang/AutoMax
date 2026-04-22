@@ -9,6 +9,7 @@ import {
   RefreshCw,
   CheckCircle2,
   Loader2,
+  MessageCircle,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -19,6 +20,12 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [wahaUrl, setWahaUrl] = useState("");
+  const [wahaSaving, setWahaSaving] = useState(false);
+  const [wahaMessage, setWahaMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchApiKey = async () => {
@@ -66,6 +73,39 @@ export default function SettingsPage() {
       setError("An error occurred while regenerating the API key");
     } finally {
       setRegenerating(false);
+    }
+  };
+
+  const handleUpdateWahaUrl = async () => {
+    setWahaSaving(true);
+    setWahaMessage(null);
+
+    try {
+      const res = await fetch("/api/settings/waha-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: wahaUrl }),
+      });
+
+      if (res.ok) {
+        setWahaMessage({
+          type: "success",
+          text: "WAHA URL updated! Redeploy Vercel to apply.",
+        });
+      } else {
+        const errorData = await res.json();
+        setWahaMessage({
+          type: "error",
+          text: errorData.error || "Failed to update WAHA URL",
+        });
+      }
+    } catch (err) {
+      setWahaMessage({
+        type: "error",
+        text: "Failed to update WAHA URL",
+      });
+    } finally {
+      setWahaSaving(false);
     }
   };
 
@@ -204,6 +244,7 @@ export default function SettingsPage() {
           border: "1px solid var(--border)",
           borderRadius: 12,
           padding: 24,
+          marginBottom: 24,
         }}
       >
         {/* Card Header */}
@@ -384,6 +425,121 @@ export default function SettingsPage() {
           >
             <CheckCircle2 size={16} color="#16a34a" />
             {successMsg}
+          </div>
+        )}
+      </div>
+
+      {/* WAHA Configuration Card */}
+      <div
+        style={{
+          backgroundColor: "var(--card)",
+          border: "1px solid var(--border)",
+          borderRadius: 12,
+          padding: 24,
+          marginBottom: 24,
+        }}
+      >
+        {/* Card Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            marginBottom: 20,
+            paddingBottom: 16,
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              backgroundColor: "#fef3c7",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <MessageCircle size={18} color="var(--primary)" />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                color: "var(--foreground)",
+              }}
+            >
+              WhatsApp (WAHA) Configuration
+            </span>
+            <span
+              style={{
+                fontSize: 13,
+                color: "var(--muted-foreground)",
+              }}
+            >
+              Update this when your Cloudflare tunnel URL changes
+            </span>
+          </div>
+        </div>
+
+        {/* URL Input */}
+        <div style={{ marginBottom: 16 }}>
+          <input
+            type="text"
+            placeholder="https://your-tunnel-url.trycloudflare.com"
+            value={wahaUrl}
+            onChange={(e) => setWahaUrl(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 14px",
+              border: "1px solid #E5E7EB",
+              borderRadius: 8,
+              fontSize: 14,
+              fontFamily: "inherit",
+              boxSizing: "border-box",
+              color: "var(--foreground)",
+              backgroundColor: "var(--secondary)",
+            }}
+          />
+        </div>
+
+        {/* Save Button */}
+        <button
+          onClick={handleUpdateWahaUrl}
+          disabled={wahaSaving}
+          style={{
+            backgroundColor: "#F59E0B",
+            color: "white",
+            padding: "10px 20px",
+            borderRadius: 8,
+            border: "none",
+            cursor: wahaSaving ? "not-allowed" : "pointer",
+            fontSize: 14,
+            fontWeight: 600,
+            opacity: wahaSaving ? 0.7 : 1,
+          }}
+        >
+          {wahaSaving ? "Updating..." : "Update WAHA URL"}
+        </button>
+
+        {/* Message Display */}
+        {wahaMessage && (
+          <div
+            style={{
+              marginTop: 12,
+              fontSize: 13,
+              color: wahaMessage.type === "success" ? "#16A34A" : "#DC2626",
+            }}
+          >
+            {wahaMessage.text}
           </div>
         )}
       </div>

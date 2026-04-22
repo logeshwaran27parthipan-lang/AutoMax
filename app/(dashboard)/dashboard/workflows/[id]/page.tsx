@@ -2312,6 +2312,7 @@ export default function WorkflowDetailPage() {
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
                                   }}
+                                  title={step.error}
                                 >
                                   — {step.error}
                                 </span>

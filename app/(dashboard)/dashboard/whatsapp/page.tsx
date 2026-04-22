@@ -14,22 +14,30 @@ import {
 } from "lucide-react";
 
 export default function WhatsAppPage() {
-  const [phone, setPhone] = useState("");
+  const [phones, setPhones] = useState<string[]>([""]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("checking...");
+  const [wahaOffline, setWahaOffline] = useState(false);
 
   useEffect(() => {
-    axios
-      .get("/api/whatsapp/status")
-      .then((res) => {
-        setStatus(res.data?.status ?? "connected");
-      })
-      .catch(() => {
-        setStatus("WAHA not running — start WAHA locally first");
-      });
+    try {
+      axios
+        .get("/api/whatsapp/status")
+        .then((res) => {
+          setStatus(res.data?.status ?? "connected");
+          setWahaOffline(false);
+        })
+        .catch(() => {
+          setWahaOffline(true);
+          setStatus("checking...");
+        });
+    } catch (err) {
+      setWahaOffline(true);
+      setStatus("checking...");
+    }
   }, []);
 
   async function sendMessage(e: React.FormEvent) {
@@ -37,19 +45,37 @@ export default function WhatsAppPage() {
     setSuccess(null);
     setError(null);
 
-    if (!phone.trim() || !message.trim()) {
+    if (phones.every((p) => !p.trim()) || !message.trim()) {
       setError("Please fill in all fields");
       return;
     }
 
+    // Validate all phone numbers
+    const cleanedPhones = phones.map((p) => p.trim()).filter((p) => p !== "");
+
+    if (cleanedPhones.length === 0) {
+      setError("Please enter at least one phone number");
+      return;
+    }
+
+    const invalidPhones = cleanedPhones.filter(
+      (p) => p.length !== 10 || !/^\d+$/.test(p),
+    );
+    if (invalidPhones.length > 0) {
+      setError("All phone numbers must be exactly 10 digits");
+      return;
+    }
+
+    const fullPhones = cleanedPhones.map((p) => "+91" + p);
+
     setLoading(true);
     try {
       await axios.post("/api/whatsapp/send", {
-        phone: phone.trim(),
+        phone: fullPhones.join(","),
         message: message.trim(),
       });
       setSuccess("Message sent successfully!");
-      setPhone("");
+      setPhones([""]);
       setMessage("");
       setTimeout(() => setSuccess(null), 5000);
     } catch (err: any) {
@@ -92,37 +118,6 @@ export default function WhatsAppPage() {
       >
         Send WhatsApp messages via WAHA.
       </p>
-
-      {/* Status Banner */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "12px 16px",
-          borderRadius: 10,
-          marginBottom: 24,
-          border: "1px solid",
-          backgroundColor: isConnected ? "#f0fdf4" : "#fef2f2",
-          borderColor: isConnected ? "#bbf7d0" : "#fecaca",
-        }}
-      >
-        {isConnected ? (
-          <Wifi size={16} color="#16a34a" />
-        ) : (
-          <WifiOff size={16} color="#dc2626" />
-        )}
-        <span
-          style={{
-            fontSize: 13,
-            color: isConnected ? "#16a34a" : "#dc2626",
-            fontWeight: 500,
-          }}
-        >
-          {isConnected ? "WAHA connected — " : "WAHA Status: "}
-          {status}
-        </span>
-      </div>
 
       {/* Send Form Card */}
       <div
@@ -171,7 +166,7 @@ export default function WhatsAppPage() {
 
         {/* Form */}
         <form onSubmit={sendMessage}>
-          {/* Phone Field */}
+          {/* Phone Recipients Field */}
           <div style={{ marginBottom: 20 }}>
             <label
               style={{
@@ -182,43 +177,102 @@ export default function WhatsAppPage() {
                 marginBottom: 6,
               }}
             >
-              Phone Number
+              Recipients
             </label>
-            <input
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="919876543210 (country code + number, no + or spaces)"
-              required
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                fontSize: 14,
-                color: "var(--foreground)",
-                backgroundColor: "var(--secondary)",
-                outline: "none",
-                boxSizing: "border-box",
-                transition: "border-color 0.2s",
-              }}
-              onFocus={(e) => {
-                (e.currentTarget as HTMLInputElement).style.borderColor =
-                  "var(--primary)";
-              }}
-              onBlur={(e) => {
-                (e.currentTarget as HTMLInputElement).style.borderColor =
-                  "var(--border)";
-              }}
-            />
-            <div
-              style={{
-                fontSize: 12,
-                color: "var(--muted-foreground)",
-                marginTop: 6,
-              }}
-            >
-              Example: 919876543210 for +91 98765 43210
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {phones.map((phone, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: 8,
+                      overflow: "hidden",
+                      flex: 1,
+                    }}
+                  >
+                    <span
+                      style={{
+                        padding: "10px 12px",
+                        backgroundColor: "#F3F4F6",
+                        color: "#374151",
+                        fontSize: 14,
+                        fontWeight: 500,
+                        borderRight: "1px solid #E5E7EB",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      +91
+                    </span>
+                    <input
+                      type="text"
+                      value={phone}
+                      onChange={(e) => {
+                        const updated = [...phones];
+                        updated[i] = e.target.value;
+                        setPhones(updated);
+                      }}
+                      placeholder="9876543210"
+                      maxLength={10}
+                      style={{
+                        flex: 1,
+                        padding: "10px 12px",
+                        border: "none",
+                        outline: "none",
+                        fontSize: 14,
+                        color: "var(--foreground)",
+                        backgroundColor: "var(--secondary)",
+                      }}
+                    />
+                  </div>
+                  {phones.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPhones(phones.filter((_, idx) => idx !== i))
+                      }
+                      style={{
+                        backgroundColor: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#DC2626",
+                        fontSize: 18,
+                        lineHeight: "1",
+                        padding: "4px 8px",
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+              {phones.length < 5 && (
+                <button
+                  type="button"
+                  onClick={() => setPhones([...phones, ""])}
+                  style={{
+                    backgroundColor: "transparent",
+                    border: "1px dashed #E5E7EB",
+                    borderRadius: 8,
+                    padding: "8px 14px",
+                    fontSize: 13,
+                    color: "var(--muted-foreground)",
+                    cursor: "pointer",
+                    width: "100%",
+                    marginTop: 4,
+                  }}
+                >
+                  + Add Recipient
+                </button>
+              )}
             </div>
           </div>
 
@@ -348,6 +402,33 @@ export default function WhatsAppPage() {
           )}
         </form>
       </div>
+
+      {/* WAHA Offline Banner */}
+      {wahaOffline && (
+        <div
+          style={{
+            backgroundColor: "#FEF3C7",
+            border: "1px solid #F59E0B",
+            borderRadius: 10,
+            padding: "14px 18px",
+            marginBottom: 24,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 12,
+          }}
+        >
+          <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: "#92400E" }}>
+              WhatsApp Disconnected
+            </span>
+            <span style={{ fontSize: 13, color: "#92400E" }}>
+              WAHA is not reachable. Start WAHA locally via Docker, then update
+              the tunnel URL in Settings.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Setup Guide Card */}
       <div
@@ -600,7 +681,7 @@ export default function WhatsAppPage() {
                   marginBottom: 6,
                 }}
               >
-                Update your .env.local:
+                Update your .env:
               </p>
               <code
                 style={{

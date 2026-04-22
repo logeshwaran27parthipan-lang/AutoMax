@@ -1,59 +1,128 @@
 import { Worker } from "bullmq";
 import { processEvent } from "../engine/workflowEngine";
 
-// Parse Upstash Redis URL format: rediss://default:PASSWORD@HOST:PORT
+/**
+ * Production-grade Worker with lazy initialization
+ * Processes workflow jobs from BullMQ queue
+ */
+
+const logger = {
+  info: (msg: string) => console.log(`[workflowWorker] ${msg}`),
+  warn: (msg: string) => console.warn(`[workflowWorker] ⚠️  ${msg}`),
+  error: (msg: string) => console.error(`[workflowWorker] ❌ ${msg}`),
+};
+
+/**
+ * Parse Upstash Redis URL format: rediss://default:PASSWORD@HOST:PORT
+ */
 function parseRedisUrl(url: string) {
-  const urlObj = new URL(url);
+  try {
+    const urlObj = new URL(url);
+    const password = urlObj.password;
+    const host = urlObj.hostname;
+    const port = parseInt(urlObj.port, 10);
 
-  const password = urlObj.password;
-  const host = urlObj.hostname;
-  const port = parseInt(urlObj.port, 10);
+    if (!host || !port || isNaN(port)) {
+      throw new Error(
+        `Invalid Redis URL: missing host (${host}), port (${port}), or port is not a number`,
+      );
+    }
 
-  if (!host || !port) {
-    throw new Error("Invalid UPSTASH_REDIS_URL format");
+    return { host, port, password };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to parse UPSTASH_REDIS_URL: ${message}`);
   }
-
-  return { host, port, password };
 }
 
-const upstashUrl = process.env.UPSTASH_REDIS_URL;
+/**
+ * Initialize and start the worker
+ */
+function startWorker(): Worker | null {
+  try {
+    const upstashUrl = process.env.UPSTASH_REDIS_URL;
 
-if (!upstashUrl) {
-  throw new Error("UPSTASH_REDIS_URL is not set");
-}
+    if (!upstashUrl) {
+      logger.error("UPSTASH_REDIS_URL is not set - worker cannot start");
+      process.exit(1); // Worker must have Redis, exit immediately
+    }
 
-const { host, port, password } = parseRedisUrl(upstashUrl);
+    logger.info("Parsing UPSTASH_REDIS_URL...");
+    const { host, port, password } = parseRedisUrl(upstashUrl);
 
-console.log("AutoMax worker starting...");
+    logger.info("Starting BullMQ worker...");
 
-// Create BullMQ worker
-export const workflowWorker = new Worker(
-  "workflow-queue",
-  async (job) => {
-    const { workflowId, payload } = job.data;
+    const worker = new Worker(
+      "workflow-queue",
+      async (job) => {
+        try {
+          const { workflowId, payload } = job.data;
+          logger.info(`Processing job ${job.id} for workflow ${workflowId}`);
 
-    // Process the workflow event
-    await processEvent("schedule", {
-      workflowId,
-      ...payload,
+          // Process the workflow event
+          await processEvent("schedule", {
+            workflowId,
+            ...payload,
+          });
+
+          logger.info(`Job ${job.id} completed successfully`);
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error(String(err));
+          logger.error(`Job ${job.id} failed: ${error.message}`);
+          throw error; // Re-throw to mark job as failed
+        }
+      },
+      {
+        connection: {
+          host,
+          port,
+          password,
+          tls: {},
+          maxRetriesPerRequest: null,
+          enableReadyCheck: false,
+          enableOfflineQueue: false,
+        },
+      },
+    );
+
+    // Error handling
+    worker.on("error", (err) => {
+      logger.error(`Worker error: ${err.message}`);
     });
-  },
-  {
-    connection: {
-      host,
-      port,
-      password,
-      tls: {},
-      maxRetriesPerRequest: null,
-    },
-  },
-);
 
-// Event listeners
-workflowWorker.on("completed", (job) => {
-  console.log(`Worker: job ${job.id} completed`);
-});
+    worker.on("failed", (job, err) => {
+      logger.warn(`Job ${job?.id} failed: ${err.message}`);
+    });
 
-workflowWorker.on("failed", (job, err) => {
-  console.log(`Worker: job ${job?.id} failed — ${err?.message}`);
-});
+    worker.on("completed", (job) => {
+      logger.info(`Job ${job.id} completed`);
+    });
+
+    logger.info("Worker started successfully");
+    return worker;
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    logger.error(`Failed to start worker: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+// Start the worker when this module is loaded
+logger.info("AutoMax worker initializing...");
+const workflowWorkerInstance = startWorker();
+export const workflowWorker = workflowWorkerInstance;
+
+// Set up event listeners
+if (workflowWorker) {
+  workflowWorker.on("error", (err) => {
+    logger.error(`Worker error: ${err.message}`);
+  });
+
+  workflowWorker.on("failed", (job, err) => {
+    logger.warn(`Job ${job?.id} failed: ${err.message}`);
+  });
+
+  workflowWorker.on("completed", (job) => {
+    logger.info(`Job ${job.id} completed`);
+  });
+}

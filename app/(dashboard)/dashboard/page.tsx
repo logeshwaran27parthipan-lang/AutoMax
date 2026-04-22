@@ -50,20 +50,15 @@ export default function DashboardPage() {
           : workflowsData.workflows || [];
         setWorkflows(workflowsArray);
 
-        // Fetch runs from first workflow if exists
-        if (workflowsArray.length > 0) {
-          try {
-            const runsRes = await fetch(
-              `/api/workflows/${workflowsArray[0].id}/runs`,
-            );
-            const runsData = await runsRes.json();
-            const runsArray = Array.isArray(runsData)
-              ? runsData
-              : runsData.runs || [];
-            setRecentRuns(runsArray.slice(0, 5));
-          } catch {
-            // Silently ignore runs fetch error
-          }
+        // Fetch recent runs across ALL workflows (not just first one)
+        try {
+          const runsRes = await fetch("/api/runs?limit=5");
+          const runsData = await runsRes.json();
+          const runsArray = runsData.runs || [];
+          setRecentRuns(runsArray);
+        } catch {
+          // Silently ignore runs fetch error
+          console.warn("[DASHBOARD] Failed to fetch recent runs");
         }
       } catch {
         // Silently ignore workflows fetch error

@@ -1,40 +1,120 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { Sparkles, Bot, Zap, AlertCircle, Loader2 } from "lucide-react";
+import { Send, Loader2, AlertCircle } from "lucide-react";
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
 
 export default function AIPage() {
-  const [model, setModel] = useState("groq");
-  const [prompt, setPrompt] = useState("");
-  const [response, setResponse] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [accountContext, setAccountContext] = useState<string>("");
+  const [input, setInput] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [requestsUsed, setRequestsUsed] = useState<number>(0);
+  const [requestsRemaining, setRequestsRemaining] = useState<number>(50);
+  const [cooldown, setCooldown] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  async function handleSubmit() {
-    if (!prompt.trim()) return alert("Enter a prompt");
-    setLoading(true);
-    setError("");
-    setResponse("");
-    try {
-      const res = await axios.post("/api/ai", { model, prompt });
-      const data = res.data;
-      if (model === "gemini" || model === "groq") {
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        setResponse(text || JSON.stringify(data, null, 2));
-      } else {
-        const text = data?.content?.[0]?.text;
-        setResponse(text || JSON.stringify(data, null, 2));
+  // Auto-scroll to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  // Fetch account context on mount
+  useEffect(() => {
+    const fetchContext = async () => {
+      try {
+        const res = await axios.get("/api/ai/context");
+        setAccountContext(res.data.accountContext);
+        setRequestsUsed(res.data.requestsUsed);
+        setRequestsRemaining(res.data.requestsRemaining);
+      } catch (err) {
+        console.error("Failed to fetch context:", err);
+        setAccountContext("Account context unavailable.");
+        setRequestsRemaining(50);
       }
-    } catch (err: unknown) {
-      const axiosError = err as {
-        response?: { data?: { error?: { message?: string } } };
-      };
-      setError(axiosError?.response?.data?.error?.message || "Request failed");
+    };
+
+    fetchContext();
+  }, []);
+
+  async function sendMessage(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    if (!input.trim() || loading || cooldown || requestsRemaining === 0) {
+      return;
+    }
+
+    const userMessage = input.trim();
+    setInput("");
+
+    // Add user message to chat
+    const newMessages: Message[] = [
+      ...messages,
+      { role: "user", content: userMessage },
+    ];
+    setMessages(newMessages);
+    setLoading(true);
+
+    try {
+      // Call API
+      const res = await axios.post("/api/ai", {
+        message: userMessage,
+        messages: newMessages,
+        accountContext: accountContext,
+      });
+
+      const {
+        reply,
+        requestsUsed: used,
+        requestsRemaining: remaining,
+      } = res.data;
+
+      // Add assistant reply
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+
+      // Update rate limit display
+      setRequestsUsed(used);
+      setRequestsRemaining(remaining);
+
+      // Start cooldown
+      setCooldown(true);
+      setTimeout(() => setCooldown(false), 3000);
+    } catch (err: any) {
+      console.error("API error:", err);
+
+      // Handle rate limit error
+      if (err.response?.status === 429) {
+        setError("You've used all 50 messages for today. Resets at midnight.");
+        setRequestsRemaining(0);
+      } else {
+        setError("Failed to get response. Please try again.");
+      }
+
+      // Add error message to chat
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content:
+            err.response?.data?.message ||
+            "AI is temporarily unavailable. Please try again.",
+        },
+      ]);
     } finally {
       setLoading(false);
     }
   }
+
+  const isLimitReached = requestsRemaining === 0;
+  const isButtonDisabled =
+    loading || cooldown || requestsRemaining === 0 || input.trim() === "";
 
   return (
     <div
@@ -43,316 +123,260 @@ export default function AIPage() {
         paddingBottom: 32,
         paddingLeft: "max(16px, 5%)",
         paddingRight: "max(16px, 5%)",
-        maxWidth: 900,
+        maxWidth: 800,
         margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
       }}
     >
-      {/* Page Header */}
-      <h1
-        style={{
-          fontSize: "clamp(20px, 5vw, 28px)",
-          fontWeight: 700,
-          color: "var(--foreground)",
-          marginBottom: 8,
-        }}
-      >
-        AI Assistant
-      </h1>
-      <p
-        style={{
-          fontSize: "clamp(13px, 3.5vw, 14px)",
-          color: "var(--muted-foreground)",
-          marginBottom: 24,
-        }}
-      >
-        Generate content with powerful AI models.
-      </p>
-
-      {/* Main Card */}
+      {/* HEADER BAR */}
       <div
         style={{
-          backgroundColor: "var(--card)",
-          border: "1px solid var(--border)",
-          borderRadius: 12,
-          padding: "clamp(16px, 4vw, 24px)",
           marginBottom: 24,
         }}
       >
-        {/* Card Header */}
+        <h1
+          style={{
+            fontSize: "clamp(20px, 5vw, 28px)",
+            fontWeight: 700,
+            color: "#1A1A2E",
+            marginBottom: 4,
+          }}
+        >
+          AutoMax AI Assistant
+        </h1>
+        <p
+          style={{
+            fontSize: "clamp(12px, 3.5vw, 14px)",
+            color: "#666",
+            marginBottom: 8,
+          }}
+        >
+          {requestsRemaining} of 50 messages remaining today
+        </p>
+      </div>
+
+      {/* RATE LIMIT BANNER */}
+      {isLimitReached && (
+        <div
+          style={{
+            backgroundColor: "#FEF3C7",
+            border: "1px solid #F59E0B",
+            borderRadius: 10,
+            padding: "12px 16px",
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+          }}
+        >
+          <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>⚠️</span>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "#92400E" }}>
+              Daily limit reached
+            </p>
+            <p style={{ fontSize: 12, color: "#92400E" }}>
+              You've used all 50 messages. Resets at midnight.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* CHAT AREA */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          marginBottom: 16,
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          paddingRight: 8,
+        }}
+      >
+        {messages.length === 0 ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 32,
+              }}
+            >
+              🤖
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#1A1A2E" }}>
+                Hi! I'm your AutoMax assistant.
+              </p>
+              <p style={{ fontSize: 13, color: "#666", marginTop: 4 }}>
+                Ask me about your workflows, runs, or how to automate your
+                business.
+              </p>
+            </div>
+          </div>
+        ) : (
+          messages.map((msg, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: "flex",
+                justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
+              }}
+            >
+              <div
+                style={{
+                  maxWidth: "85%",
+                  padding: 12,
+                  borderRadius: 8,
+                  backgroundColor: msg.role === "user" ? "#F59E0B" : "#F0F0F0",
+                  color: msg.role === "user" ? "white" : "#1A1A2E",
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  wordWrap: "break-word",
+                }}
+              >
+                {msg.content}
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* Loading Indicator */}
+        {loading && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-start",
+            }}
+          >
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                backgroundColor: "#F0F0F0",
+                color: "#1A1A2E",
+                fontSize: 13,
+                display: "flex",
+                gap: 4,
+              }}
+            >
+              <span style={{ animation: "pulse 1s infinite" }}>●</span>
+              <span
+                style={{
+                  animation: "pulse 0.8s infinite",
+                  animationDelay: "0.2s",
+                }}
+              >
+                ●
+              </span>
+              <span
+                style={{
+                  animation: "pulse 0.6s infinite",
+                  animationDelay: "0.4s",
+                }}
+              >
+                ●
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div ref={chatEndRef} />
+      </div>
+
+      {/* ERROR MESSAGE */}
+      {error && (
         <div
           style={{
             display: "flex",
             alignItems: "center",
             gap: 8,
-            marginBottom: 16,
-            paddingBottom: 12,
-            borderBottom: "1px solid var(--border)",
+            padding: "12px 14px",
+            backgroundColor: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: 8,
+            fontSize: 12,
+            color: "#DC2626",
+            marginBottom: 12,
           }}
         >
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              backgroundColor: "#ede9fe",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Sparkles size={18} color="#8b5cf6" />
-          </div>
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: "var(--foreground)",
-            }}
-          >
-            Generate Content
-          </span>
+          <AlertCircle size={16} color="#DC2626" />
+          {error}
         </div>
+      )}
 
-        {/* Model Selection */}
-        <div style={{ marginBottom: 12 }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: 13,
-              fontWeight: 500,
-              color: "var(--muted-foreground)",
-              marginBottom: 8,
-            }}
-          >
-            Select Model
-          </label>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
-              gap: 12,
-            }}
-          >
-            {/* Groq Button */}
-            <button
-              type="button"
-              onClick={() => setModel("groq")}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 12,
-                padding: 16,
-                borderRadius: 10,
-                border:
-                  model === "groq"
-                    ? "2px solid var(--primary)"
-                    : "1px solid var(--border)",
-                backgroundColor:
-                  model === "groq" ? "var(--accent)" : "var(--secondary)",
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                if (model !== "groq") {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor =
-                    "var(--primary)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (model !== "groq") {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor =
-                    "var(--border)";
-                }
-              }}
-            >
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 8,
-                  backgroundColor:
-                    model === "groq" ? "var(--primary)" : "var(--muted)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Zap
-                  size={16}
-                  color={model === "groq" ? "white" : "var(--muted-foreground)"}
-                />
-              </div>
-              <div style={{ textAlign: "center", flex: 1 }}>
-                <p
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: "var(--foreground)",
-                    marginBottom: 2,
-                  }}
-                >
-                  Groq (LLaMA 3)
-                </p>
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "var(--muted-foreground)",
-                  }}
-                >
-                  Fastest response
-                </p>
-              </div>
-            </button>
-
-            {/* Gemini Button */}
-            <button
-              type="button"
-              onClick={() => setModel("gemini")}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 12,
-                padding: 16,
-                borderRadius: 10,
-                border:
-                  model === "gemini"
-                    ? "2px solid var(--primary)"
-                    : "1px solid var(--border)",
-                backgroundColor:
-                  model === "gemini" ? "var(--accent)" : "var(--secondary)",
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                if (model !== "gemini") {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor =
-                    "var(--primary)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (model !== "gemini") {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor =
-                    "var(--border)";
-                }
-              }}
-            >
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 8,
-                  backgroundColor:
-                    model === "gemini" ? "var(--primary)" : "var(--muted)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Bot
-                  size={16}
-                  color={
-                    model === "gemini" ? "white" : "var(--muted-foreground)"
-                  }
-                />
-              </div>
-              <div style={{ textAlign: "center", flex: 1 }}>
-                <p
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: "var(--foreground)",
-                    marginBottom: 2,
-                  }}
-                >
-                  Gemini
-                </p>
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "var(--muted-foreground)",
-                  }}
-                >
-                  Advanced reasoning
-                </p>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* Prompt Input */}
-        <div style={{ marginBottom: 12 }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: 13,
-              fontWeight: 500,
-              color: "var(--muted-foreground)",
-              marginBottom: 4,
-            }}
-          >
-            Your Prompt
-          </label>
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Write a follow-up email for a new lead..."
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              fontSize: 13,
-              color: "var(--foreground)",
-              backgroundColor: "var(--secondary)",
-              outline: "none",
-              boxSizing: "border-box",
-              height: 120,
-              resize: "vertical",
-              fontFamily: "inherit",
-              transition: "border-color 0.2s",
-            }}
-            onFocus={(e) => {
-              (e.currentTarget as HTMLTextAreaElement).style.borderColor =
-                "var(--primary)";
-            }}
-            onBlur={(e) => {
-              (e.currentTarget as HTMLTextAreaElement).style.borderColor =
-                "var(--border)";
-            }}
-          />
-        </div>
-
-        {/* Submit Button */}
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
+      {/* INPUT BAR */}
+      <form
+        onSubmit={sendMessage}
+        style={{
+          display: "flex",
+          gap: 8,
+          alignItems: "flex-end",
+        }}
+      >
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type your message..."
+          disabled={isLimitReached || loading}
           style={{
-            width: "100%",
-            backgroundColor: loading ? "#f59e0b" : "var(--primary)",
+            flex: 1,
+            padding: "10px 14px",
+            border: "1px solid #E5E5E5",
+            borderRadius: 8,
+            fontSize: 13,
+            color: "#1A1A2E",
+            backgroundColor: "#FAFAFA",
+            outline: "none",
+            boxSizing: "border-box",
+            cursor: isLimitReached ? "not-allowed" : "text",
+            opacity: isLimitReached ? 0.6 : 1,
+            transition: "all 0.2s",
+          }}
+          onFocus={(e) => {
+            if (!isLimitReached) {
+              (e.currentTarget as HTMLInputElement).style.borderColor =
+                "#F59E0B";
+            }
+          }}
+          onBlur={(e) => {
+            (e.currentTarget as HTMLInputElement).style.borderColor = "#E5E5E5";
+          }}
+        />
+        <button
+          type="submit"
+          disabled={isButtonDisabled}
+          style={{
+            backgroundColor: isButtonDisabled ? "#CCCCCC" : "#F59E0B",
             color: "white",
             border: "none",
             borderRadius: 8,
-            padding: "9px 20px",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: loading ? "not-allowed" : "pointer",
+            padding: "10px 16px",
+            cursor: isButtonDisabled ? "not-allowed" : "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             gap: 6,
             transition: "all 0.2s",
+            flexShrink: 0,
           }}
           onMouseEnter={(e) => {
-            if (!loading) {
+            if (!isButtonDisabled) {
               (e.currentTarget as HTMLButtonElement).style.opacity = "0.9";
             }
           }}
           onMouseLeave={(e) => {
-            if (!loading) {
+            if (!isButtonDisabled) {
               (e.currentTarget as HTMLButtonElement).style.opacity = "1";
             }
           }}
@@ -363,104 +387,19 @@ export default function AIPage() {
               style={{ animation: "spin 1s linear infinite" }}
             />
           ) : (
-            <Sparkles size={16} />
+            <Send size={16} />
           )}
-          {loading ? "Generating..." : "Generate Response"}
         </button>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            padding: "12px 16px",
-            backgroundColor: "#fef2f2",
-            border: "1px solid #fecaca",
-            borderRadius: 8,
-            fontSize: 13,
-            color: "#dc2626",
-            marginBottom: 24,
-          }}
-        >
-          <AlertCircle size={16} color="#dc2626" />
-          {error}
-        </div>
-      )}
-
-      {/* Response Card */}
-      {response && (
-        <div
-          style={{
-            backgroundColor: "var(--card)",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            padding: 24,
-          }}
-        >
-          {/* Card Header */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              marginBottom: 16,
-              paddingBottom: 16,
-              borderBottom: "1px solid var(--border)",
-            }}
-          >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                backgroundColor: "#ede9fe",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Bot size={18} color="#8b5cf6" />
-            </div>
-            <span
-              style={{
-                fontSize: 16,
-                fontWeight: 600,
-                color: "var(--foreground)",
-              }}
-            >
-              AI Response
-            </span>
-          </div>
-
-          {/* Response Content */}
-          <div
-            style={{
-              padding: 16,
-              backgroundColor: "var(--secondary)",
-              borderRadius: 8,
-              fontSize: 14,
-              color: "var(--foreground)",
-              lineHeight: 1.6,
-              whiteSpace: "pre-wrap",
-              wordWrap: "break-word",
-            }}
-          >
-            {response}
-          </div>
-        </div>
-      )}
+      </form>
 
       <style>{`
         @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
         }
       `}</style>
     </div>

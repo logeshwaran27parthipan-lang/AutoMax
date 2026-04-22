@@ -35,6 +35,27 @@ export async function sendEmail(
     });
     return { success: true, result: data };
   } catch (err: any) {
-    return { success: false, error: String(err) };
+    // ============================================
+    // SECURITY: Sanitize error messages
+    // Resend API errors can contain sensitive info
+    // ============================================
+    let sanitized = String(err);
+
+    // Remove Resend API key if present (pattern: re_XXXX...)
+    sanitized = sanitized.replace(/re_[a-zA-Z0-9_]{20,}/g, "[REDACTED_KEY]");
+
+    // Remove Bearer tokens if present
+    sanitized = sanitized.replace(
+      /Bearer\s+[a-zA-Z0-9_.=-]+/g,
+      "[REDACTED_TOKEN]",
+    );
+
+    console.error("[GMAIL] Email send failed - sanitized error:", {
+      sanitizedError: sanitized,
+      recipient: to,
+      subject: subject.substring(0, 50),
+    });
+
+    return { success: false, error: sanitized };
   }
 }

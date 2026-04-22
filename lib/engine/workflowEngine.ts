@@ -9,7 +9,16 @@ import { createRun, logStep, finishRun } from "@/lib/engine/runLogger";
 export async function processEvent(eventName: string, payload: any) {
   console.log("[PROCESS EVENT]:", eventName);
 
-  const workflows = await prisma.workflow.findMany();
+  // ============================================
+  // FETCH WORKFLOWS WITH ORG ISOLATION
+  // ============================================
+  // Only load workflows for the specific user (organization isolation)
+  // Never load ALL workflows from all users in the database
+  const workflows = await prisma.workflow.findMany({
+    where: {
+      userId: payload.userId,
+    },
+  });
 
   const matchedWorkflows = workflows.filter((wf) => {
     // Direct workflowId match for webhook and manual events only

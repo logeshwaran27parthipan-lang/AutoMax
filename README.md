@@ -4,7 +4,7 @@ Marketing automation SaaS starter built with Next.js 14 (App Router), TypeScript
 
 Quick start
 
-1. Copy .env.local from the template and fill in your keys.
+1. Copy .env from the template and fill in your keys.
 2. Install dependencies:
 
 ```powershell
