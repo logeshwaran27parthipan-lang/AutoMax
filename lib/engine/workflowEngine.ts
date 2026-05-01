@@ -47,11 +47,15 @@ export async function processEvent(eventName: string, payload: any) {
       return msg.includes(keyword.toLowerCase());
     }
 
-    // Event name matches trigger type (catch-all for manual, webhook, etc.)
-    if (triggerType === eventName) return true;
 
-    return false;
-  });
+    // Event name matches trigger type (catch-all)
+    // But if a specific workflowId was provided, don't match other workflows
+    if (triggerType === eventName) {
+        if (payload.workflowId) return false;
+          return true;
+        }
+          return false;
+          });
 
   console.log("[MATCHED WORKFLOWS]:", matchedWorkflows.length);
 
@@ -93,6 +97,7 @@ export async function processEvent(eventName: string, payload: any) {
     }
 
     let runFailed = false;
+    const stepOutputs: Record<string, any> = {};
 
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
@@ -109,6 +114,16 @@ export async function processEvent(eventName: string, payload: any) {
             .map((m: any) => `${m.role}: ${m.message}`)
             .join("\n");
 
+          const stepContext = {
+            ...enrichedPayload,
+            ...Object.fromEntries(
+              Object.entries(stepOutputs).map(([k, v]) => [
+                `step_${k}_output`,
+                v,
+              ]),
+            ),
+          };
+
           const prompt = `Conversation history:
 ${historyText}
 
@@ -117,7 +132,7 @@ Email: ${extracted.primaryEmail || "not found"}
 Phone: ${extracted.primaryPhone || "not found"}
 
 New message:
-${interpolate(step.prompt, enrichedPayload)}`;
+${interpolate(step.prompt, stepContext)}`;
 
           let aiResponse = await runAI(prompt);
           console.log("[RAW AI RESPONSE]:", aiResponse);
@@ -156,7 +171,12 @@ ${interpolate(step.prompt, enrichedPayload)}`;
 
           await logStep(runId, i, "ai_decision", "success", step, aiResponse);
 
-          for (const aiStep of aiResponse.steps) {
+          for (
+            let subIndex = 0;
+            subIndex < aiResponse.steps.length;
+            subIndex++
+          ) {
+            const aiStep = aiResponse.steps[subIndex];
             const action = actions[aiStep.action as keyof typeof actions];
 
             if (!action) {
@@ -167,11 +187,22 @@ ${interpolate(step.prompt, enrichedPayload)}`;
             console.log("🤖 AI step:", aiStep.action);
             console.log("📦 Params:", aiStep.params);
 
+            const stepContext = {
+              ...enrichedPayload,
+              ...Object.fromEntries(
+                Object.entries(stepOutputs).map(([k, v]) => [
+                  `step_${k}_output`,
+                  v,
+                ]),
+              ),
+            };
+
             try {
               const result = await action({
                 ...aiStep.params,
-                ...enrichedPayload,
+                ...stepContext,
               });
+              stepOutputs[`${i}_${subIndex}`] = result;
               await logStep(
                 runId,
                 i,
@@ -216,36 +247,248 @@ ${interpolate(step.prompt, enrichedPayload)}`;
       // 🧠 CONDITION STEP
       // =============================
       if (step.type === "condition") {
-        const actual = enrichedPayload[step.field];
+        const stepContext = {
+          ...enrichedPayload,
+          ...Object.fromEntries(
+            Object.entries(stepOutputs).map(([k, v]) => [
+              `step_${k}_output`,
+              v,
+            ]),
+          ),
+        };
+
+        // Interpolate the field to get the actual value
+        const resolvedField = interpolate(step.field, stepContext);
         let conditionPassed = false;
 
         if (step.operator === "includes") {
-          conditionPassed =
-            typeof actual === "string" && actual.includes(step.value);
+          conditionPassed = String(resolvedField)
+            .toLowerCase()
+            .includes(String(step.value).toLowerCase());
         } else if (step.operator === "equals") {
-          conditionPassed = actual === step.value;
+          conditionPassed = resolvedField === step.value;
         } else if (step.operator === "not_equals") {
-          conditionPassed = actual !== step.value;
+          conditionPassed = resolvedField !== step.value;
         }
 
         console.log("[CONDITION]:", conditionPassed);
 
-        await logStep(
-          runId,
-          i,
-          "condition",
-          conditionPassed ? "success" : "skipped",
-          step,
-          { conditionPassed },
-        );
-
-        if (!conditionPassed) {
+        if (conditionPassed) {
+          await logStep(runId, i, "condition", "success", step, {
+            passed: true,
+            field: resolvedField,
+          });
+          console.log("✅ Condition passed → continuing");
+        } else {
+          await logStep(runId, i, "condition", "success", step, {
+            passed: false,
+            field: resolvedField,
+            reason: "Condition not met — workflow stopped",
+          });
           console.log("❌ Condition failed → stopping workflow");
           break;
         }
 
-        console.log("✅ Condition passed → continuing");
         continue;
+      }
+
+      // =============================
+      // 🔄 FOREACH STEP
+      // =============================
+      if (step.type === "forEach") {
+        const sourceStep = step.sourceStep;
+        const itemVariable = step.itemVariable || "item";
+
+        if (sourceStep === undefined || sourceStep === null) {
+          console.log("❌ forEach step missing sourceStep");
+          await logStep(
+            runId,
+            i,
+            "forEach",
+            "failed",
+            step,
+            null,
+            "Missing sourceStep property",
+          );
+          continue;
+        }
+
+        const sourceOutput = stepOutputs[sourceStep];
+
+        if (!Array.isArray(sourceOutput)) {
+          console.log(
+            `❌ forEach sourceStep ${sourceStep} output is not an array:`,
+            sourceOutput,
+          );
+          await logStep(runId, i, "forEach", "skipped", step, {
+            reason: "sourceOutput is not an array",
+          });
+          continue;
+        }
+
+        if (sourceOutput.length === 0) {
+          console.log(`⏭️ forEach sourceStep ${sourceStep} array is empty`);
+          await logStep(runId, i, "forEach", "skipped", step, {
+            reason: "sourceOutput array is empty",
+          });
+          continue;
+        }
+
+        console.log(`[FOREACH] Iterating ${sourceOutput.length} items`);
+
+        // Get remaining steps to execute in the loop
+        const remainingSteps = steps.slice(i + 1);
+        const iterationResults: any[] = [];
+
+        for (let itemIndex = 0; itemIndex < sourceOutput.length; itemIndex++) {
+          const currentItem = sourceOutput[itemIndex];
+
+          console.log(
+            `[FOREACH ITERATION ${itemIndex + 1}/${sourceOutput.length}]`,
+          );
+
+          await logStep(
+            runId,
+            i,
+            "forEach_iteration",
+            "success",
+            { itemIndex, itemVariable, sourceStep },
+            { itemIndex, item: currentItem },
+          );
+
+          const iterationStepOutputs: Record<string, any> = {
+            ...stepOutputs,
+          };
+
+          // Execute remaining steps with current item in context
+          for (let j = 0; j < remainingSteps.length; j++) {
+            const substep = remainingSteps[j];
+
+            // Build step context with current item merged in
+            const stepContext = {
+              ...enrichedPayload,
+              [itemVariable]: currentItem,
+              ...Object.fromEntries(
+                Object.entries(iterationStepOutputs).map(([k, v]) => [
+                  `step_${k}_output`,
+                  v,
+                ]),
+              ),
+            };
+
+            // Skip nested forEach steps in loop (only process normal actions)
+            if (substep.type === "forEach") {
+              console.log(
+                `⏭️ Skipping nested forEach at step ${i + 1 + j} during iteration`,
+              );
+              continue;
+            }
+
+            // Handle condition steps
+            if (substep.type === "condition") {
+              const resolvedField = interpolate(substep.field, stepContext);
+              let conditionPassed = false;
+
+              if (substep.operator === "includes") {
+                conditionPassed = String(resolvedField)
+                  .toLowerCase()
+                  .includes(String(substep.value).toLowerCase());
+              } else if (substep.operator === "equals") {
+                conditionPassed = resolvedField === substep.value;
+              } else if (substep.operator === "not_equals") {
+                conditionPassed = resolvedField !== substep.value;
+              }
+
+              console.log(
+                `[CONDITION in iteration]:`,
+                conditionPassed,
+                `| field resolved to:`,
+                resolvedField,
+              );
+
+              if (!conditionPassed) {
+                console.log(`❌ Condition failed in iteration → stopping loop`);
+                break;
+              }
+
+              console.log(`✅ Condition passed in iteration → continuing`);
+              continue;
+            }
+
+            // Handle normal action steps
+            const substepAction = actions[substep.type as keyof typeof actions];
+
+            if (!substepAction) {
+              console.log(`No action for substep:`, substep.type);
+              continue;
+            }
+
+            try {
+              // Interpolate substep fields
+              const interpolatedSubstep: any = {};
+              for (const [key, value] of Object.entries(substep)) {
+                if (typeof value === "string") {
+                  interpolatedSubstep[key] = interpolate(value, stepContext);
+                } else if (Array.isArray(value)) {
+                  interpolatedSubstep[key] = value.map((item) =>
+                    Array.isArray(item)
+                      ? item.map((v) =>
+                          typeof v === "string"
+                            ? interpolate(v, stepContext)
+                            : v,
+                        )
+                      : typeof item === "string"
+                        ? interpolate(item, stepContext)
+                        : item,
+                  );
+                } else {
+                  interpolatedSubstep[key] = value;
+                }
+              }
+
+              console.log(`[FOREACH SUBSTEP ${j}]`, interpolatedSubstep.type);
+
+              const result = await substepAction({
+                ...interpolatedSubstep,
+                ...stepContext,
+              });
+
+              iterationStepOutputs[`${i + 1 + j}`] = result;
+
+              console.log(
+                `✅ Substep ${substep.type} success in iteration ${itemIndex}`,
+              );
+            } catch (err: any) {
+              console.log(
+                `❌ Substep error in iteration ${itemIndex}:`,
+                err?.message || err,
+              );
+            }
+          }
+
+          iterationResults.push({
+            itemIndex,
+            item: currentItem,
+            outputs: iterationStepOutputs,
+          });
+
+          await logStep(
+            runId,
+            i,
+            "forEach_iteration",
+            "success",
+            { itemIndex, itemVariable, sourceStep },
+            { itemIndex, item: currentItem },
+          );
+        }
+
+        await logStep(runId, i, "forEach", "success", step, {
+          iterationCount: sourceOutput.length,
+          results: iterationResults,
+        });
+
+        // Skip remaining steps since they already executed in the loop
+        break;
       }
 
       // =============================
@@ -269,19 +512,28 @@ ${interpolate(step.prompt, enrichedPayload)}`;
       }
 
       try {
-        // Interpolate ALL step fields before passing to action
+        const stepContext = {
+          ...enrichedPayload,
+          ...Object.fromEntries(
+            Object.entries(stepOutputs).map(([k, v]) => [
+              `step_${k}_output`,
+              v,
+            ]),
+          ),
+        };
+
         const interpolatedStep: any = {};
         for (const [key, value] of Object.entries(step)) {
           if (typeof value === "string") {
-            interpolatedStep[key] = interpolate(value, enrichedPayload);
+            interpolatedStep[key] = interpolate(value, stepContext);
           } else if (Array.isArray(value)) {
             interpolatedStep[key] = value.map((item) =>
               Array.isArray(item)
                 ? item.map((v) =>
-                    typeof v === "string" ? interpolate(v, enrichedPayload) : v,
+                    typeof v === "string" ? interpolate(v, stepContext) : v,
                   )
                 : typeof item === "string"
-                  ? interpolate(item, enrichedPayload)
+                  ? interpolate(item, stepContext)
                   : item,
             );
           } else {
@@ -291,11 +543,50 @@ ${interpolate(step.prompt, enrichedPayload)}`;
 
         console.log("[INTERPOLATED STEP]:", interpolatedStep);
 
-        const result = await action({
-          ...interpolatedStep,
-          ...enrichedPayload,
-        });
-        await logStep(runId, i, step.type, "success", step, result);
+        const maxRetries =
+          typeof step.retryCount === "number" ? step.retryCount : 0;
+        let lastError: any = null;
+        let result: any = null;
+        let succeeded = false;
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          if (attempt > 0) {
+            console.log(
+              `[RETRY] Step ${i} attempt ${attempt} of ${maxRetries}`,
+            );
+            await new Promise((res) => setTimeout(res, 1000));
+          }
+          try {
+            result = await action({
+              ...interpolatedStep,
+              ...stepContext,
+            });
+            succeeded = true;
+            break;
+          } catch (err: any) {
+            lastError = err;
+            console.log(
+              `[STEP ERROR] attempt ${attempt + 1}:`,
+              err?.message || err,
+            );
+          }
+        }
+
+        if (succeeded) {
+          stepOutputs[i] = result;
+          await logStep(runId, i, step.type, "success", step, result);
+        } else {
+          await logStep(
+            runId,
+            i,
+            step.type,
+            "failed",
+            step,
+            null,
+            lastError?.message || String(lastError),
+          );
+          runFailed = true;
+        }
       } catch (err: any) {
         console.log("Step error:", err);
         await logStep(

@@ -72,16 +72,22 @@ Return ONLY a JSON object in this exact format:
 
 Available actions and required params:
 - send_email: to (email address), subject (string), body (string)
-- send_whatsapp: to (phone with country code), message (string)
-- sheets_append: spreadsheetId (string), range (string), values (array)
+- send_whatsapp: to (phone with country code, e.g. 919876543210), message (string)
+- sheets_read: spreadsheetId (string), range (string like "Sheet1!A1:Z100")
+- sheets_append: spreadsheetId (string), range (string like "Sheet1!A1"), values (array of arrays, e.g. [["col1","col2"]])
 
 STRICT RULES:
-1. If email address is provided in extracted data or message — use it for send_email.
-2. If phone number is provided in extracted data or message — use it for send_whatsapp.
-3. NEVER invent or guess email addresses or phone numbers.
-4. If required data is missing for an action — skip that action entirely.
-5. Always return steps array even for single action.
-6. No explanation. No markdown. Pure JSON only.`,
+1. sheets_read is for READING data — use it when the prompt says "read", "get", "fetch", "check".
+2. sheets_append is for WRITING data — use it when the prompt says "add", "append", "write", "save".
+3. NEVER confuse sheets_read with sheets_append. They are completely different.
+4. For sheets_read, always use a wide range like "Sheet1!A1:Z100" to get all data, never just "A1".
+5. values for sheets_append must ALWAYS be an array of arrays: [["value1","value2"]].
+6. If email address is provided — use it for send_email.
+7. If phone number is provided — use it for send_whatsapp.
+8. NEVER invent or guess email addresses or phone numbers.
+9. If required data is missing for an action — skip that action entirely.
+10. Always return steps array even for single action.
+11. No explanation. No markdown. Pure JSON only.`,
           },
           {
             role: "user",

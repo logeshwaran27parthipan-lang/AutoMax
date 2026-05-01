@@ -8,7 +8,6 @@ export type SheetsReadInput = {
 export async function sheetsReadAction(data: SheetsReadInput) {
   const { spreadsheetId, range } = data;
 
-  // ✅ VALIDATION
   if (!spreadsheetId) throw new Error("Missing spreadsheetId");
   if (!range) throw new Error("Missing range");
 
@@ -16,5 +15,18 @@ export async function sheetsReadAction(data: SheetsReadInput) {
 
   const rows = await getSheetRows(spreadsheetId, range);
 
-  return rows;
+  if (!rows || rows.length < 2) return [];
+
+  const headers = rows[0] as string[];
+  const dataRows = rows.slice(1);
+
+  const result = dataRows.map((row: any[]) => {
+    const obj: Record<string, string> = {};
+    headers.forEach((header, i) => {
+      obj[header] = row[i] ?? "";
+    });
+    return obj;
+  });
+
+  return result;
 }

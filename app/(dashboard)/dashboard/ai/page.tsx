@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { Send, Loader2, AlertCircle } from "lucide-react";
+import { Send, AlertCircle } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -33,10 +33,20 @@ export default function AIPage() {
         setAccountContext(res.data.accountContext);
         setRequestsUsed(res.data.requestsUsed);
         setRequestsRemaining(res.data.requestsRemaining);
+        setError(null); // Clear any previous error
       } catch (err) {
         console.error("Failed to fetch context:", err);
-        setAccountContext("Account context unavailable.");
-        setRequestsRemaining(50);
+
+        // ✓ FIXED: Don't reset to 50
+        // Keep the old value from useState (it defaults to 50)
+        setAccountContext(
+          "Account context unavailable. Using last known data.",
+        );
+
+        // Show warning but don't panic user
+        setError(
+          "⚠️ Could not refresh your usage data. Please refresh the page if issues persist.",
+        );
       }
     };
 
@@ -119,287 +129,475 @@ export default function AIPage() {
   return (
     <div
       style={{
-        paddingTop: 16,
-        paddingBottom: 32,
-        paddingLeft: "max(16px, 5%)",
-        paddingRight: "max(16px, 5%)",
-        maxWidth: 800,
-        margin: "0 auto",
         display: "flex",
         flexDirection: "column",
         height: "100vh",
+        backgroundColor: "#FAFAFA",
+        fontFamily:
+          "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       }}
     >
-      {/* HEADER BAR */}
-      <div
-        style={{
-          marginBottom: 24,
-        }}
-      >
-        <h1
-          style={{
-            fontSize: "clamp(20px, 5vw, 28px)",
-            fontWeight: 700,
-            color: "#1A1A2E",
-            marginBottom: 4,
-          }}
-        >
-          AutoMax AI Assistant
-        </h1>
-        <p
-          style={{
-            fontSize: "clamp(12px, 3.5vw, 14px)",
-            color: "#666",
-            marginBottom: 8,
-          }}
-        >
-          {requestsRemaining} of 50 messages remaining today
-        </p>
-      </div>
-
       {/* RATE LIMIT BANNER */}
       {isLimitReached && (
         <div
           style={{
+            padding: "16px clamp(16px, 5%, 48px)",
             backgroundColor: "#FEF3C7",
-            border: "1px solid #F59E0B",
-            borderRadius: 10,
-            padding: "12px 16px",
-            marginBottom: 16,
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 10,
+            borderBottom: "2px solid #F59E0B",
+            flexShrink: 0,
           }}
         >
-          <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>⚠️</span>
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#92400E" }}>
-              Daily limit reached
-            </p>
-            <p style={{ fontSize: 12, color: "#92400E" }}>
-              You've used all 50 messages. Resets at midnight.
-            </p>
+          <div
+            style={{
+              maxWidth: "1400px",
+              margin: "0 auto",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "16px",
+            }}
+          >
+            <span style={{ fontSize: "20px", flexShrink: 0, marginTop: "2px" }}>
+              ⚠️
+            </span>
+            <div>
+              <p
+                style={{
+                  fontSize: "clamp(13px, 2vw, 15px)",
+                  fontWeight: 700,
+                  color: "#92400E",
+                  margin: "0 0 4px 0",
+                }}
+              >
+                Daily limit reached
+              </p>
+              <p
+                style={{
+                  fontSize: "clamp(12px, 1.5vw, 13px)",
+                  color: "#92400E",
+                  margin: 0,
+                }}
+              >
+                You&apos;ve used all 50 messages. Resets at midnight.
+              </p>
+            </div>
           </div>
         </div>
       )}
 
-      {/* CHAT AREA */}
+      {/* SCROLLABLE CHAT AREA */}
       <div
         style={{
           flex: 1,
           overflowY: "auto",
-          marginBottom: 16,
+          padding: "clamp(24px, 5%, 48px)",
           display: "flex",
           flexDirection: "column",
-          gap: 12,
-          paddingRight: 8,
+          backgroundColor: "#FAFAFA",
         }}
       >
-        {messages.length === 0 ? (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              flexDirection: "column",
-              gap: 12,
-            }}
-          >
+        <div
+          style={{
+            maxWidth: "1000px",
+            margin: "0 auto",
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            gap: "clamp(12px, 3vw, 20px)",
+          }}
+        >
+          {/* WELCOME STATE */}
+          {messages.length === 0 ? (
             <div
-              style={{
-                fontSize: 32,
-              }}
-            >
-              🤖
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "#1A1A2E" }}>
-                Hi! I'm your AutoMax assistant.
-              </p>
-              <p style={{ fontSize: 13, color: "#666", marginTop: 4 }}>
-                Ask me about your workflows, runs, or how to automate your
-                business.
-              </p>
-            </div>
-          </div>
-        ) : (
-          messages.map((msg, idx) => (
-            <div
-              key={idx}
               style={{
                 display: "flex",
-                justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: "clamp(300px, 60vh, 500px)",
+                flexDirection: "column",
+                gap: "clamp(20px, 5vw, 40px)",
               }}
             >
               <div
                 style={{
-                  maxWidth: "85%",
-                  padding: 12,
-                  borderRadius: 8,
-                  backgroundColor: msg.role === "user" ? "#F59E0B" : "#F0F0F0",
-                  color: msg.role === "user" ? "white" : "#1A1A2E",
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                  wordWrap: "break-word",
+                  fontSize: "clamp(48px, 10vw, 80px)",
+                  lineHeight: 1,
+                  animation: "float 3s ease-in-out infinite",
                 }}
               >
-                {msg.content}
+                🤖
+              </div>
+              <div style={{ textAlign: "center", maxWidth: "600px" }}>
+                <p
+                  style={{
+                    fontSize: "clamp(18px, 5vw, 28px)",
+                    fontWeight: 700,
+                    color: "#1A1A2E",
+                    margin: "0 0 12px 0",
+                    letterSpacing: "-0.5px",
+                  }}
+                >
+                  Hi! I&apos;m your AutoMax assistant.
+                </p>
+                <p
+                  style={{
+                    fontSize: "clamp(14px, 3vw, 16px)",
+                    color: "#6B7280",
+                    margin: 0,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Ask me about your workflows, automation runs, performance
+                  analytics, or how to grow your business. I&apos;m here to help
+                  optimize your operations.
+                </p>
               </div>
             </div>
-          ))
-        )}
+          ) : (
+            /* MESSAGES */
+            messages.map((msg, idx) => (
+              <div
+                key={idx}
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    msg.role === "user" ? "flex-end" : "flex-start",
+                  gap: "clamp(8px, 2vw, 16px)",
+                  animation: "slideIn 0.3s ease-out",
+                }}
+              >
+                {msg.role === "assistant" && (
+                  <div
+                    style={{
+                      fontSize: "clamp(20px, 4vw, 28px)",
+                      lineHeight: 1,
+                      flexShrink: 0,
+                      marginTop: "4px",
+                    }}
+                  >
+                    🤖
+                  </div>
+                )}
+                <div
+                  style={{
+                    maxWidth: msg.role === "user" ? "60%" : "70%",
+                    padding: "clamp(12px, 2vw, 16px)",
+                    paddingLeft: "clamp(14px, 3vw, 20px)",
+                    paddingRight: "clamp(14px, 3vw, 20px)",
+                    borderRadius: "clamp(8px, 2vw, 16px)",
+                    backgroundColor:
+                      msg.role === "user" ? "#F59E0B" : "#F3F4F6",
+                    color: msg.role === "user" ? "#FFFFFF" : "#1A1A2E",
+                    fontSize: "clamp(13px, 2vw, 15px)",
+                    lineHeight: 1.6,
+                    wordWrap: "break-word",
+                    overflowWrap: "break-word",
+                    boxShadow:
+                      msg.role === "user"
+                        ? "0 2px 8px rgba(245, 158, 11, 0.15)"
+                        : "0 2px 8px rgba(0, 0, 0, 0.05)",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {msg.content}
+                </div>
+              </div>
+            ))
+          )}
 
-        {/* Loading Indicator */}
-        {loading && (
-          <div
+          {/* LOADING STATE */}
+          {loading && (
+            <div
+              style={{
+                display: "flex",
+                gap: "clamp(8px, 2vw, 16px)",
+                alignItems: "flex-start",
+                animation: "slideIn 0.3s ease-out",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "clamp(20px, 4vw, 28px)",
+                  lineHeight: 1,
+                  flexShrink: 0,
+                  marginTop: "4px",
+                }}
+              >
+                🤖
+              </div>
+              <div
+                style={{
+                  padding: "clamp(12px, 2vw, 16px)",
+                  paddingLeft: "clamp(14px, 3vw, 20px)",
+                  paddingRight: "clamp(14px, 3vw, 20px)",
+                  borderRadius: "clamp(8px, 2vw, 16px)",
+                  backgroundColor: "#F3F4F6",
+                  display: "flex",
+                  gap: "clamp(4px, 1.5vw, 8px)",
+                  alignItems: "center",
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+                }}
+              >
+                <span
+                  style={{
+                    width: "clamp(6px, 1.5vw, 10px)",
+                    height: "clamp(6px, 1.5vw, 10px)",
+                    borderRadius: "50%",
+                    backgroundColor: "#9CA3AF",
+                    animation: "pulse 1.4s infinite",
+                  }}
+                />
+                <span
+                  style={{
+                    width: "clamp(6px, 1.5vw, 10px)",
+                    height: "clamp(6px, 1.5vw, 10px)",
+                    borderRadius: "50%",
+                    backgroundColor: "#9CA3AF",
+                    animation: "pulse 1.4s infinite",
+                    animationDelay: "0.2s",
+                  }}
+                />
+                <span
+                  style={{
+                    width: "clamp(6px, 1.5vw, 10px)",
+                    height: "clamp(6px, 1.5vw, 10px)",
+                    borderRadius: "50%",
+                    backgroundColor: "#9CA3AF",
+                    animation: "pulse 1.4s infinite",
+                    animationDelay: "0.4s",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div ref={chatEndRef} />
+        </div>
+      </div>
+
+      {/* FIXED BOTTOM INPUT BAR */}
+      <div
+        style={{
+          position: "sticky",
+          bottom: 0,
+          // backgroundColor: "#FFFFFF",
+          borderBottom: "1px solid #E5E7EB",
+          padding: "20px clamp(16px, 5%, 48px) 30px clamp(16px, 5%, 48px)",
+          flexShrink: 0,
+          zIndex: 10,
+          // boxShadow: "0 -4px 12px rgba(0, 0, 0, 0.05)",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1000px",
+            margin: "0 auto",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          {/* ERROR MESSAGE */}
+          {error && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "12px",
+                padding: "clamp(12px, 2vw, 16px)",
+                backgroundColor: "#FEF2F2",
+                border: "1px solid #FECACA",
+                borderRadius: "8px",
+                fontSize: "clamp(12px, 2vw, 14px)",
+                color: "#DC2626",
+                marginBottom: "16px",
+              }}
+            >
+              <AlertCircle
+                size={18}
+                color="#DC2626"
+                style={{ flexShrink: 0, marginTop: "2px" }}
+              />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* INPUT FORM */}
+          <form
+            onSubmit={sendMessage}
             style={{
               display: "flex",
-              justifyContent: "flex-start",
+              gap: "clamp(8px, 2vw, 14px)",
+              alignItems: "flex-end",
+            }}
+          >
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask anything about your business..."
+              disabled={isLimitReached || loading}
+              rows={1}
+              style={{
+                flex: 1,
+                padding: "clamp(12px, 2vw, 14px)",
+                border: "1px solid #D1D5DB",
+                borderRadius: "8px",
+                fontSize: "clamp(13px, 2vw, 15px)",
+                color: "#1A1A2E",
+                backgroundColor: "#FFFFFF",
+                outline: "none",
+                boxSizing: "border-box",
+                cursor: isLimitReached ? "not-allowed" : "text",
+                opacity: isLimitReached ? 0.6 : 1,
+                transition: "all 0.2s",
+                fontFamily: "inherit",
+                resize: "none",
+                maxHeight: "120px",
+                overflowY: "auto",
+              }}
+              onFocus={(e) => {
+                if (!isLimitReached) {
+                  (e.currentTarget as HTMLTextAreaElement).style.borderColor =
+                    "#F59E0B";
+                  (e.currentTarget as HTMLTextAreaElement).style.boxShadow =
+                    "0 0 0 3px rgba(245, 158, 11, 0.1)";
+                }
+              }}
+              onBlur={(e) => {
+                (e.currentTarget as HTMLTextAreaElement).style.borderColor =
+                  "#D1D5DB";
+                (e.currentTarget as HTMLTextAreaElement).style.boxShadow =
+                  "none";
+              }}
+            />
+            <button
+              type="submit"
+              disabled={isButtonDisabled}
+              style={{
+                backgroundColor: isButtonDisabled ? "#D1D5DB" : "#F59E0B",
+                color: isButtonDisabled ? "#9CA3AF" : "#FFFFFF",
+                border: "none",
+                borderRadius: "8px",
+                padding: "clamp(12px, 2vw, 14px)",
+                cursor: isButtonDisabled ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.2s ease",
+                flexShrink: 0,
+                fontSize: "clamp(13px, 2vw, 15px)",
+                fontWeight: 500,
+                boxShadow: "0 2px 8px rgba(245, 158, 11, 0.15)",
+              }}
+              onMouseEnter={(e) => {
+                if (!isButtonDisabled) {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                    "#ECAA11";
+                  (e.currentTarget as HTMLButtonElement).style.transform =
+                    "translateY(-2px)";
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                    "0 4px 16px rgba(245, 158, 11, 0.25)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isButtonDisabled) {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                    "#F59E0B";
+                  (e.currentTarget as HTMLButtonElement).style.transform =
+                    "translateY(0)";
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                    "0 2px 8px rgba(245, 158, 11, 0.15)";
+                }
+              }}
+            >
+              <Send size={16} />
+            </button>
+          </form>
+
+          {/* MESSAGE COUNTER - PROGRESS BAR */}
+          <div
+            style={{
+              marginTop: "12px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
             }}
           >
             <div
               style={{
-                padding: 12,
-                borderRadius: 8,
-                backgroundColor: "#F0F0F0",
-                color: "#1A1A2E",
-                fontSize: 13,
                 display: "flex",
-                gap: 4,
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
             >
-              <span style={{ animation: "pulse 1s infinite" }}>●</span>
               <span
                 style={{
-                  animation: "pulse 0.8s infinite",
-                  animationDelay: "0.2s",
+                  fontSize: "clamp(11px, 2vw, 12px)",
+                  fontWeight: 600,
+                  color: "#6B7280",
                 }}
               >
-                ●
+                Messages used
               </span>
               <span
                 style={{
-                  animation: "pulse 0.6s infinite",
-                  animationDelay: "0.4s",
+                  fontSize: "clamp(11px, 2vw, 12px)",
+                  fontWeight: 700,
+                  color: "#F59E0B",
                 }}
               >
-                ●
+                {50 - requestsRemaining} / 50
               </span>
             </div>
+            <div
+              style={{
+                width: "100%",
+                height: "8px",
+                backgroundColor: "#E5E7EB",
+                borderRadius: "4px",
+                overflow: "hidden",
+                boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)",
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${((50 - requestsRemaining) / 50) * 100}%`,
+                  backgroundColor:
+                    requestsRemaining > 10 ? "#F59E0B" : "#EF4444",
+                  transition: "width 0.3s ease, background-color 0.3s ease",
+                  borderRadius: "4px",
+                  boxShadow: `0 0 8px ${requestsRemaining > 10 ? "rgba(245, 158, 11, 0.4)" : "rgba(239, 68, 68, 0.4)"}`,
+                }}
+              />
+            </div>
           </div>
-        )}
-
-        <div ref={chatEndRef} />
+        </div>
       </div>
 
-      {/* ERROR MESSAGE */}
-      {error && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "12px 14px",
-            backgroundColor: "#FEF2F2",
-            border: "1px solid #FECACA",
-            borderRadius: 8,
-            fontSize: 12,
-            color: "#DC2626",
-            marginBottom: 12,
-          }}
-        >
-          <AlertCircle size={16} color="#DC2626" />
-          {error}
-        </div>
-      )}
-
-      {/* INPUT BAR */}
-      <form
-        onSubmit={sendMessage}
-        style={{
-          display: "flex",
-          gap: 8,
-          alignItems: "flex-end",
-        }}
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
-          disabled={isLimitReached || loading}
-          style={{
-            flex: 1,
-            padding: "10px 14px",
-            border: "1px solid #E5E5E5",
-            borderRadius: 8,
-            fontSize: 13,
-            color: "#1A1A2E",
-            backgroundColor: "#FAFAFA",
-            outline: "none",
-            boxSizing: "border-box",
-            cursor: isLimitReached ? "not-allowed" : "text",
-            opacity: isLimitReached ? 0.6 : 1,
-            transition: "all 0.2s",
-          }}
-          onFocus={(e) => {
-            if (!isLimitReached) {
-              (e.currentTarget as HTMLInputElement).style.borderColor =
-                "#F59E0B";
-            }
-          }}
-          onBlur={(e) => {
-            (e.currentTarget as HTMLInputElement).style.borderColor = "#E5E5E5";
-          }}
-        />
-        <button
-          type="submit"
-          disabled={isButtonDisabled}
-          style={{
-            backgroundColor: isButtonDisabled ? "#CCCCCC" : "#F59E0B",
-            color: "white",
-            border: "none",
-            borderRadius: 8,
-            padding: "10px 16px",
-            cursor: isButtonDisabled ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 6,
-            transition: "all 0.2s",
-            flexShrink: 0,
-          }}
-          onMouseEnter={(e) => {
-            if (!isButtonDisabled) {
-              (e.currentTarget as HTMLButtonElement).style.opacity = "0.9";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isButtonDisabled) {
-              (e.currentTarget as HTMLButtonElement).style.opacity = "1";
-            }
-          }}
-        >
-          {loading ? (
-            <Loader2
-              size={16}
-              style={{ animation: "spin 1s linear infinite" }}
-            />
-          ) : (
-            <Send size={16} />
-          )}
-        </button>
-      </form>
-
       <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
+        }
+        
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+        
+        /* Smooth scrolling */
+        div {
+          scroll-behavior: smooth;
         }
       `}</style>
     </div>

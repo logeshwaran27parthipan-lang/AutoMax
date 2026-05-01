@@ -6,7 +6,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     console.log("[WHATSAPP INCOMING]:", JSON.stringify(body));
 
-    // WAHA sends events in this format
     const event = body?.event;
     const payload = body?.payload;
 
@@ -18,7 +17,19 @@ export async function POST(req: NextRequest) {
     const text = payload?.body || payload?.text || "";
     const name = payload?.notifyName || payload?._data?.notifyName || "";
 
-    const phone = from.replace("@c.us", "").replace("@s.whatsapp.net", "");
+    // Skip @lid contacts — these are internal WhatsApp IDs, not real phone numbers
+    if (from.includes("@lid")) {
+      console.log("[WHATSAPP INCOMING] Skipping @lid contact:", from);
+      return NextResponse.json({ ok: true, skipped: true });
+    }
+
+    // Strip @c.us or @s.whatsapp.net suffix
+    let phone = from.replace("@c.us", "").replace("@s.whatsapp.net", "").trim();
+
+    // Add + prefix if missing (WAHA sends numbers without +)
+    if (phone && !phone.startsWith("+")) {
+      phone = "+" + phone;
+    }
 
     console.log("[WHATSAPP MESSAGE] from:", phone, "text:", text);
 

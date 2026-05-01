@@ -14,6 +14,8 @@ type Run = {
     stepType: string;
     status: string;
     error?: string;
+    input?: any;
+    output?: any;
   }[];
 };
 type Workflow = {
@@ -32,6 +34,10 @@ const STEP_TYPES = [
   { value: "ai_decision", label: "AI Decision" },
   { value: "sheets_read", label: "Sheets Read" },
   { value: "sheets_append", label: "Sheets Append" },
+  { value: "forEach", label: "For Each (Loop)" },
+  { value: "condition", label: "Condition" },
+  { value: "http_request", label: "HTTP Request" },
+  { value: "whatsapp_reply", label: "WhatsApp Reply" },
 ];
 
 const TRIGGER_TYPES = [
@@ -61,6 +67,14 @@ function stepSummary(s: Step): string {
     return `${s.spreadsheetId || "—"} / ${s.range || "—"}`;
   if (s.type === "sheets_append")
     return `${s.spreadsheetId || "—"} / ${s.range || "—"}`;
+  if (s.type === "forEach")
+    return `Loop over Step ${(s.sourceStep || 0) + 1} as {{${s.itemVariable || "item"}}}`;
+  if (s.type === "condition")
+    return `If ${s.field || "—"} ${s.operator || "—"} ${s.value || "—"}`;
+  if (s.type === "http_request")
+    return `${s.method || "POST"} ${s.url || "No URL set"}`;
+  if (s.type === "whatsapp_reply")
+    return `Reply: ${(s.message || "").slice(0, 60)}`;
   return JSON.stringify(s);
 }
 
@@ -108,15 +122,246 @@ const HINT = (
   </p>
 );
 
+// ── Get available variables from previous steps ──
+function getAvailableVariables(
+  steps: Step[],
+  currentIndex: number,
+): Array<{
+  stepNum: number;
+  stepType: string;
+  variables: Array<{ label: string; variable: string }>;
+}> {
+  const available: Array<{
+    stepNum: number;
+    stepType: string;
+    variables: Array<{ label: string; variable: string }>;
+  }> = [];
+
+  for (let i = 0; i < currentIndex && i < steps.length; i++) {
+    const step = steps[i];
+    const stepNum = i + 1;
+    const variables: Array<{ label: string; variable: string }> = [];
+
+    if (step.type === "sheets_read") {
+      variables.push({ label: "Full data", variable: `{{step_${i}_output}}` });
+      variables.push({
+        label: "Name field",
+        variable: `{{step_${i}_output.Name}}`,
+      });
+      variables.push({
+        label: "Email field",
+        variable: `{{step_${i}_output.Email}}`,
+      });
+      variables.push({
+        label: "Phone field",
+        variable: `{{step_${i}_output.Phone}}`,
+      });
+    } else if (step.type === "sheets_append") {
+      variables.push({
+        label: "Success",
+        variable: `{{step_${i}_output.success}}`,
+      });
+    } else if (step.type === "send_email") {
+      variables.push({
+        label: "Success",
+        variable: `{{step_${i}_output.success}}`,
+      });
+      variables.push({ label: "Sent", variable: `{{step_${i}_output.sent}}` });
+    } else if (step.type === "send_whatsapp") {
+      variables.push({
+        label: "Success",
+        variable: `{{step_${i}_output.success}}`,
+      });
+      variables.push({ label: "Sent", variable: `{{step_${i}_output.sent}}` });
+    } else if (step.type === "ai_decision") {
+      variables.push({
+        label: "Full output",
+        variable: `{{step_${i}_output}}`,
+      });
+    } else if (step.type === "forEach") {
+      variables.push({
+        label: "Full loop item (current row as JSON)",
+        variable: "{{item}}",
+      });
+      variables.push({
+        label: "Name column of current row",
+        variable: "{{item.Name}}",
+      });
+      variables.push({
+        label: "Email column of current row",
+        variable: "{{item.Email}}",
+      });
+      variables.push({
+        label: "Phone column of current row",
+        variable: "{{item.Phone}}",
+      });
+    } else {
+      // Any other type
+      variables.push({
+        label: "Full output",
+        variable: `{{step_${i}_output}}`,
+      });
+    }
+
+    available.push({ stepNum, stepType: step.type, variables });
+  }
+
+  return available;
+}
+
+// ── Variables Panel Component ──
+function VariablesPanel({
+  steps,
+  currentIndex,
+}: {
+  steps: Step[];
+  currentIndex: number;
+}) {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [copiedVar, setCopiedVar] = useState<string | null>(null);
+
+  // Only show if currentIndex > 0 (Step 2 or later)
+  if (currentIndex <= 0) {
+    return null;
+  }
+
+  const variables = getAvailableVariables(steps, currentIndex);
+
+  if (variables.length === 0) {
+    return null;
+  }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedVar(text);
+      setTimeout(() => setCopiedVar(null), 1500);
+    });
+  }
+
+  return (
+    <div
+      style={{
+        background: "#EFF6FF",
+        border: "1px solid #DBEAFE",
+        borderRadius: 8,
+        padding: "12px",
+        marginBottom: 12,
+        fontSize: 13,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          cursor: "pointer",
+        }}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <p
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: "#1D4ED8",
+            margin: 0,
+          }}
+        >
+          📦 Available Variables from Previous Steps
+        </p>
+        <span
+          style={{
+            fontSize: 12,
+            color: "#1D4ED8",
+            fontWeight: "bold",
+          }}
+        >
+          {isExpanded ? "−" : "+"}
+        </span>
+      </div>
+
+      {isExpanded && (
+        <div style={{ marginTop: 8 }}>
+          {variables.map((item) => (
+            <div
+              key={`${item.stepNum}-${item.stepType}`}
+              style={{ marginBottom: 8 }}
+            >
+              <p
+                style={{
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: "#1E40AF",
+                  margin: "4px 0",
+                }}
+              >
+                Step {item.stepNum} ({item.stepType})
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 6,
+                }}
+              >
+                {item.variables.map((varItem) => (
+                  <div
+                    key={varItem.variable}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      background: "#FFFFFF",
+                      border: "1px solid #BFDBFE",
+                      borderRadius: 4,
+                      padding: "6px 8px",
+                      fontSize: 11,
+                    }}
+                  >
+                    <span style={{ fontFamily: "monospace", color: "#1E40AF" }}>
+                      {varItem.variable}
+                    </span>
+                    <button
+                      onClick={() => copyToClipboard(varItem.variable)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        color:
+                          copiedVar === varItem.variable
+                            ? "#16A34A"
+                            : "#2563EB",
+                        fontWeight: "bold",
+                        padding: 0,
+                        marginLeft: 4,
+                      }}
+                    >
+                      {copiedVar === varItem.variable ? "✓" : "Copy"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Reusable step fields ──
 function StepFields({
   stepType,
   formState,
   setFormState,
+  steps,
+  index,
 }: {
   stepType: string;
   formState: any;
   setFormState: (s: any) => void;
+  steps?: Step[];
+  index?: number;
 }) {
   return (
     <>
@@ -428,6 +673,303 @@ function StepFields({
             </div>
           )}
         </>
+      )}
+      {stepType === "forEach" && steps !== undefined && index !== undefined && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Source Step (array to loop over)
+            </label>
+            <select
+              value={formState.sourceStep ?? ""}
+              onChange={(e) =>
+                setFormState({
+                  ...formState,
+                  sourceStep: parseInt(e.target.value),
+                })
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            >
+              <option value="">Select a previous step...</option>
+              {steps.slice(0, index).map((s: any, i: number) => (
+                <option key={i} value={i}>
+                  Step {i + 1} — {s.type}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Choose the step whose output is a list (e.g. sheets_read returns
+              rows).
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Item Variable Name
+            </label>
+            <input
+              type="text"
+              value={formState.itemVariable ?? "item"}
+              onChange={(e) =>
+                setFormState({ ...formState, itemVariable: e.target.value })
+              }
+              placeholder="item"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Each row will be available as {"{{item.ColumnName}}"} in steps
+              after this one.
+            </p>
+          </div>
+        </div>
+      )}
+      {stepType === "condition" && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Field
+            </label>
+            <input
+              type="text"
+              value={formState.field ?? ""}
+              onChange={(e) =>
+                setFormState({ ...formState, field: e.target.value })
+              }
+              placeholder="Variable, e.g. {{item.Phone}}"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Operator
+            </label>
+            <select
+              value={formState.operator ?? ""}
+              onChange={(e) =>
+                setFormState({ ...formState, operator: e.target.value })
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            >
+              <option value="">Select operator...</option>
+              <option value="includes">Includes</option>
+              <option value="equals">Equals</option>
+              <option value="not_equals">Not Equals</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Value
+            </label>
+            <input
+              type="text"
+              value={formState.value ?? ""}
+              onChange={(e) =>
+                setFormState({ ...formState, value: e.target.value })
+              }
+              placeholder="Value to compare"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+      )}
+      {stepType === "http_request" && (
+        <>
+          {HINT}
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#6B7280",
+                marginBottom: 4,
+              }}
+            >
+              URL
+            </label>
+            <input
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#FFFFFF",
+                color: "#1A1A2E",
+                fontFamily: "Inter, sans-serif",
+              }}
+              placeholder="https://example.com/webhook"
+              value={formState.url || ""}
+              onChange={(e) =>
+                setFormState({ ...formState, url: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#6B7280",
+                marginBottom: 4,
+              }}
+            >
+              Method
+            </label>
+            <select
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#FFFFFF",
+                color: "#1A1A2E",
+                fontFamily: "Inter, sans-serif",
+              }}
+              value={formState.method || "POST"}
+              onChange={(e) =>
+                setFormState({ ...formState, method: e.target.value })
+              }
+            >
+              <option value="POST">POST</option>
+              <option value="GET">GET</option>
+              <option value="PUT">PUT</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+          </div>
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#6B7280",
+                marginBottom: 4,
+              }}
+            >
+              Headers (JSON, optional)
+            </label>
+            <textarea
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#FFFFFF",
+                color: "#1A1A2E",
+                fontFamily: "monospace",
+                resize: "none",
+              }}
+              rows={2}
+              placeholder='{"Authorization": "Bearer token"}'
+              value={formState.headers || ""}
+              onChange={(e) =>
+                setFormState({ ...formState, headers: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#6B7280",
+                marginBottom: 4,
+              }}
+            >
+              Body (JSON, optional)
+            </label>
+            <textarea
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#FFFFFF",
+                color: "#1A1A2E",
+                fontFamily: "monospace",
+                resize: "none",
+              }}
+              rows={2}
+              placeholder='{"key": "value"}'
+              value={formState.body || ""}
+              onChange={(e) =>
+                setFormState({ ...formState, body: e.target.value })
+              }
+            />
+          </div>
+        </>
+      )}
+      {stepType === "whatsapp_reply" && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Message</label>
+          <textarea
+            placeholder="Type your reply message here. Phone is taken automatically from the trigger."
+            className="w-full border rounded px-3 py-2 text-sm min-h-[80px]"
+            value={formState.message || ""}
+            onChange={(e) =>
+              setFormState({ ...formState, message: e.target.value })
+            }
+          />
+          <p className="text-xs text-gray-500">
+            💡 Phone number is automatically taken from the WhatsApp trigger
+            payload.
+          </p>
+        </div>
+      )}
+      {stepType !== "forEach" && stepType !== "condition" && (
+        <div>
+          <label
+            style={{
+              display: "block",
+              fontSize: 12,
+              fontWeight: 500,
+              color: "#6B7280",
+              marginBottom: 4,
+            }}
+          >
+            Retry on failure (0–3)
+          </label>
+          <input
+            type="number"
+            min={0}
+            max={3}
+            style={{
+              width: 80,
+              padding: "8px 12px",
+              border: "1px solid #E5E7EB",
+              borderRadius: 8,
+              fontSize: 14,
+              outline: "none",
+              background: "#FFFFFF",
+              color: "#1A1A2E",
+            }}
+            value={formState.retryCount ?? 0}
+            onChange={(e) =>
+              setFormState({
+                ...formState,
+                retryCount: Math.min(
+                  3,
+                  Math.max(0, parseInt(e.target.value) || 0),
+                ),
+              })
+            }
+          />
+          <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}>
+            How many times to retry if this step fails. 0 = no retry.
+          </p>
+        </div>
       )}
     </>
   );
@@ -741,6 +1283,7 @@ export default function WorkflowDetailPage() {
   const [activeTab, setActiveTab] = useState<"steps" | "runs" | "test">(
     "steps",
   );
+  const [expandedRunStep, setExpandedRunStep] = useState<string | null>(null);
 
   // Name/description edit
   const [editingMeta, setEditingMeta] = useState(false);
@@ -914,7 +1457,34 @@ export default function WorkflowDetailPage() {
           error: 'Values must be valid JSON e.g. [["a","b"]]',
         };
       }
+    } else if (type === "forEach") {
+      if (
+        form.sourceStep === undefined ||
+        form.sourceStep === null ||
+        form.sourceStep === ""
+      )
+        return { step: null, error: "Source Step is required" };
+      s.sourceStep = parseInt(form.sourceStep);
+      s.itemVariable = form.itemVariable || "item";
+    } else if (type === "condition") {
+      if (!form.field) return { step: null, error: "Field is required" };
+      if (!form.operator) return { step: null, error: "Operator is required" };
+      if (form.value === undefined || form.value === "")
+        return { step: null, error: "Value is required" };
+      s.field = form.field;
+      s.operator = form.operator;
+      s.value = form.value;
+    } else if (type === "http_request") {
+      if (!form.url) return { step: null, error: "URL is required" };
+      s.url = form.url;
+      s.method = form.method || "POST";
+      s.headers = form.headers || "";
+      s.body = form.body || "";
+    } else if (type === "whatsapp_reply") {
+      if (!form.message) return { step: null, error: "Message is required" };
+      s.message = form.message;
     }
+    if (typeof form.retryCount === "number") s.retryCount = form.retryCount;
     return { step: s, error: "" };
   }
 
@@ -1786,10 +2356,18 @@ export default function WorkflowDetailPage() {
                         ))}
                       </select>
                     </div>
+                    {showAddForm && workflow && workflow.steps.length > 0 && (
+                      <VariablesPanel
+                        steps={workflow.steps}
+                        currentIndex={workflow.steps.length}
+                      />
+                    )}
                     <StepFields
                       stepType={stepType}
                       formState={formState}
                       setFormState={setFormState}
+                      steps={workflow?.steps}
+                      index={workflow?.steps.length}
                     />
                     <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
                       <button
@@ -2091,10 +2669,18 @@ export default function WorkflowDetailPage() {
                                 ))}
                               </select>
                             </div>
+                            {editingStepIdx !== null && workflow && (
+                              <VariablesPanel
+                                steps={workflow.steps}
+                                currentIndex={editingStepIdx}
+                              />
+                            )}
                             <StepFields
                               stepType={editStepType}
                               formState={editStepForm}
                               setFormState={setEditStepForm}
+                              steps={workflow?.steps}
+                              index={editingStepIdx}
                             />
                             <div
                               style={{ display: "flex", gap: 8, paddingTop: 4 }}
@@ -2279,46 +2865,141 @@ export default function WorkflowDetailPage() {
                             marginTop: 4,
                           }}
                         >
-                          {run.steps.map((step, i) => (
-                            <div
-                              key={i}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                fontSize: 12,
-                                color: "#6B7280",
-                              }}
-                            >
-                              <span
-                                style={{
-                                  width: 6,
-                                  height: 6,
-                                  borderRadius: "50%",
-                                  flexShrink: 0,
-                                  background:
-                                    step.status === "success"
-                                      ? "#4ADE80"
-                                      : "#F87171",
-                                }}
-                              />
-                              <span>
-                                Step {step.stepIndex + 1} — {step.stepType}
-                              </span>
-                              {step.error && (
-                                <span
+                          {run.steps.map((step, i) => {
+                            const stepKey = `${run.id}-${i}`;
+                            const isExpanded = expandedRunStep === stepKey;
+                            return (
+                              <div
+                                key={i}
+                                style={{ fontSize: 12, color: "#6B7280" }}
+                              >
+                                <div
                                   style={{
-                                    color: "#DC2626",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
                                   }}
-                                  title={step.error}
                                 >
-                                  — {step.error}
-                                </span>
-                              )}
-                            </div>
-                          ))}
+                                  <span
+                                    style={{
+                                      width: 6,
+                                      height: 6,
+                                      borderRadius: "50%",
+                                      flexShrink: 0,
+                                      background:
+                                        step.status === "success" ||
+                                        step.status === "completed"
+                                          ? "#16A34A"
+                                          : step.status === "started"
+                                            ? "#EAB308"
+                                            : step.status === "failed" ||
+                                                step.status === "error"
+                                              ? "#DC2626"
+                                              : "#D1D5DB",
+                                    }}
+                                  />
+                                  <span>
+                                    Step {step.stepIndex + 1} — {step.stepType}
+                                  </span>
+                                  {step.error && (
+                                    <span
+                                      style={{
+                                        color: "#DC2626",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                      }}
+                                      title={step.error}
+                                    >
+                                      — {step.error}
+                                    </span>
+                                  )}
+                                  {(step.input || step.output) && (
+                                    <button
+                                      onClick={() =>
+                                        setExpandedRunStep(
+                                          isExpanded ? null : stepKey,
+                                        )
+                                      }
+                                      style={{
+                                        marginLeft: "auto",
+                                        fontSize: 11,
+                                        padding: "1px 6px",
+                                        background: isExpanded
+                                          ? "#DBEAFE"
+                                          : "#F3F4F6",
+                                        color: isExpanded
+                                          ? "#1D4ED8"
+                                          : "#6B7280",
+                                        border: "none",
+                                        borderRadius: 4,
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      {isExpanded ? "Hide" : "Details"}
+                                    </button>
+                                  )}
+                                </div>
+                                {isExpanded && (
+                                  <div
+                                    style={{
+                                      marginTop: 6,
+                                      marginLeft: 14,
+                                      background: "#F9FAFB",
+                                      border: "1px solid #E5E7EB",
+                                      borderRadius: 6,
+                                      padding: "8px 10px",
+                                      fontSize: 11,
+                                      fontFamily: "monospace",
+                                      color: "#374151",
+                                    }}
+                                  >
+                                    {step.input && (
+                                      <div style={{ marginBottom: 6 }}>
+                                        <span
+                                          style={{
+                                            fontWeight: 600,
+                                            color: "#6B7280",
+                                          }}
+                                        >
+                                          INPUT
+                                        </span>
+                                        <pre
+                                          style={{
+                                            margin: "2px 0 0 0",
+                                            whiteSpace: "pre-wrap",
+                                            wordBreak: "break-all",
+                                          }}
+                                        >
+                                          {JSON.stringify(step.input, null, 2)}
+                                        </pre>
+                                      </div>
+                                    )}
+                                    {step.output && (
+                                      <div>
+                                        <span
+                                          style={{
+                                            fontWeight: 600,
+                                            color: "#6B7280",
+                                          }}
+                                        >
+                                          OUTPUT
+                                        </span>
+                                        <pre
+                                          style={{
+                                            margin: "2px 0 0 0",
+                                            whiteSpace: "pre-wrap",
+                                            wordBreak: "break-all",
+                                          }}
+                                        >
+                                          {JSON.stringify(step.output, null, 2)}
+                                        </pre>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
