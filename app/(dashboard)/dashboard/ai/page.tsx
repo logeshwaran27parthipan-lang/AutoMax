@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { Send, AlertCircle, MessageSquare, Zap } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -53,7 +53,7 @@ function tryParseWorkflow(text: string): ParsedWorkflow | null {
   }
 }
 
-export default function AIPage() {
+export function AiPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<Mode>("chat");
@@ -851,5 +851,26 @@ export default function AIPage() {
         div { scroll-behavior: smooth; }
       `}</style>
     </div>
+  );
+}
+
+export default function AiPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100vh",
+          }}
+        >
+          <div style={{ color: "#9CA3AF" }}>Loading...</div>
+        </div>
+      }
+    >
+      <AiPageInner />
+    </Suspense>
   );
 }
