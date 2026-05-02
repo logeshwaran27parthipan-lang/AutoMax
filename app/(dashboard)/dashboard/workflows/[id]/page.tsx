@@ -47,15 +47,58 @@ const TRIGGER_TYPES = [
   { value: "manual", label: "Manual" },
 ];
 
-const CRON_PRESETS = [
-  { label: "Every minute", value: "* * * * *" },
-  { label: "Every 5 minutes", value: "*/5 * * * *" },
-  { label: "Every hour", value: "0 * * * *" },
-  { label: "Every day at 9:00 AM", value: "0 9 * * *" },
-  { label: "Every day at midnight", value: "0 0 * * *" },
-  { label: "Every Monday at 9:00 AM", value: "0 9 * * 1" },
-  { label: "Custom...", value: "custom" },
+const SCHEDULE_FREQUENCIES = [
+  { label: "Every day", value: "daily" },
+  { label: "Weekdays only (Mon–Fri)", value: "weekdays" },
+  { label: "Every week on Monday", value: "weekly" },
+  { label: "First day of every month", value: "monthly" },
+  { label: "Every hour", value: "hourly" },
+  { label: "Every 30 minutes", value: "30min" },
+  { label: "Every 5 minutes", value: "5min" },
+  { label: "Every minute", value: "1min" },
+  { label: "Custom cron...", value: "custom" },
 ];
+
+const INTERVAL_FREQUENCIES = ["hourly", "30min", "5min", "1min"];
+
+function buildCronFromSchedule(
+  frequency: string,
+  hour: number,
+  minute: number,
+): string {
+  switch (frequency) {
+    case "daily":
+      return `${minute} ${hour} * * *`;
+    case "weekdays":
+      return `${minute} ${hour} * * 1-5`;
+    case "weekly":
+      return `${minute} ${hour} * * 1`;
+    case "monthly":
+      return `${minute} ${hour} 1 * *`;
+    case "hourly":
+      return `0 * * * *`;
+    case "30min":
+      return `*/30 * * * *`;
+    case "5min":
+      return `*/5 * * * *`;
+    case "1min":
+      return `* * * * *`;
+    default:
+      return `${minute} ${hour} * * *`;
+  }
+}
+
+function cronHumanLabel(cron: string): string {
+  if (cron === "* * * * *") return "Every minute";
+  if (cron === "*/5 * * * *") return "Every 5 minutes";
+  if (cron === "*/30 * * * *") return "Every 30 minutes";
+  if (cron === "0 * * * *") return "Every hour";
+  if (cron.endsWith("* * 1-5")) return "Weekdays";
+  if (cron.endsWith("* * 1")) return "Every Monday";
+  if (cron.endsWith("1 * *")) return "First of month";
+  if (cron.endsWith("* * *")) return "Every day";
+  return cron;
+}
 
 function stepSummary(s: Step): string {
   if (s.type === "send_email")
@@ -86,12 +129,6 @@ function timeAgo(dateStr: string): string {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
-}
-
-function cronHumanLabel(cron: string): string {
-  const preset = CRON_PRESETS.find((p) => p.value === cron);
-  if (preset && preset.value !== "custom") return preset.label;
-  return cron;
 }
 
 const HINT = (
@@ -990,26 +1027,42 @@ function TriggerEditForm({
   const [triggerType, setTriggerType] = useState<string>(
     triggerConfig?.type || "webhook",
   );
-  const [cronPreset, setCronPreset] = useState<string>(() => {
+  const [frequency, setFrequency] = useState<string>(() => {
     const cron = triggerConfig?.cron || "";
-    const found = CRON_PRESETS.find(
-      (p) => p.value === cron && p.value !== "custom",
-    );
-    return found ? cron : "custom";
+    if (cron === "* * * * *") return "1min";
+    if (cron === "*/5 * * * *") return "5min";
+    if (cron === "*/30 * * * *") return "30min";
+    if (cron === "0 * * * *") return "hourly";
+    if (cron.endsWith("* * 1-5")) return "weekdays";
+    if (cron.endsWith("* * 1")) return "weekly";
+    if (cron.endsWith("1 * *")) return "monthly";
+    if (cron.endsWith("* * *") && !cron.startsWith("*")) return "daily";
+    return "custom";
+  });
+  const [scheduleHour, setScheduleHour] = useState<number>(() => {
+    const cron = triggerConfig?.cron || "";
+    const parts = cron.split(" ");
+    return parts.length === 5 ? parseInt(parts[1]) || 9 : 9;
+  });
+  const [scheduleMinute, setScheduleMinute] = useState<number>(() => {
+    const cron = triggerConfig?.cron || "";
+    const parts = cron.split(" ");
+    return parts.length === 5 ? parseInt(parts[0]) || 0 : 0;
   });
   const [customCron, setCustomCron] = useState<string>(
-    triggerConfig?.cron || "* * * * *",
+    triggerConfig?.cron || "0 9 * * *",
   );
-  const [timezone, setTimezone] = useState<string>(
-    triggerConfig?.timezone || "Asia/Kolkata",
-  );
+  const [timezone] = useState<string>("Asia/Kolkata");
   const [keyword, setKeyword] = useState<string>(triggerConfig?.keyword || "");
   const [error, setError] = useState("");
 
   function handleSave() {
     setError("");
     if (triggerType === "schedule") {
-      const cron = cronPreset === "custom" ? customCron.trim() : cronPreset;
+      const cron =
+        frequency === "custom"
+          ? customCron.trim()
+          : buildCronFromSchedule(frequency, scheduleHour, scheduleMinute);
       if (!cron) {
         setError("Cron expression is required");
         return;
@@ -1077,11 +1130,11 @@ function TriggerEditForm({
                 marginBottom: 4,
               }}
             >
-              Schedule
+              Run frequency
             </label>
             <select
-              value={cronPreset}
-              onChange={(e) => setCronPreset(e.target.value)}
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value)}
               style={{
                 width: "100%",
                 padding: "8px 12px",
@@ -1094,14 +1147,83 @@ function TriggerEditForm({
                 fontFamily: "Inter, sans-serif",
               }}
             >
-              {CRON_PRESETS.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
+              {SCHEDULE_FREQUENCIES.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
                 </option>
               ))}
             </select>
           </div>
-          {cronPreset === "custom" && (
+
+          {!INTERVAL_FREQUENCIES.includes(frequency) &&
+            frequency !== "custom" && (
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "#6B7280",
+                    marginBottom: 4,
+                  }}
+                >
+                  Run at (IST)
+                </label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <select
+                    value={scheduleHour}
+                    onChange={(e) => setScheduleHour(parseInt(e.target.value))}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: 8,
+                      fontSize: 14,
+                      outline: "none",
+                      background: "#FFFFFF",
+                      color: "#1A1A2E",
+                    }}
+                  >
+                    {Array.from({ length: 24 }, (_, i) => {
+                      const ampm = i < 12 ? "AM" : "PM";
+                      const displayHour = i === 0 ? 12 : i > 12 ? i - 12 : i;
+                      return (
+                        <option key={i} value={i}>
+                          {String(displayHour).padStart(2, "0")} {ampm}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <select
+                    value={scheduleMinute}
+                    onChange={(e) =>
+                      setScheduleMinute(parseInt(e.target.value))
+                    }
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: 8,
+                      fontSize: 14,
+                      outline: "none",
+                      background: "#FFFFFF",
+                      color: "#1A1A2E",
+                    }}
+                  >
+                    {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
+                      <option key={m} value={m}>
+                        {String(m).padStart(2, "0")}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}>
+                  India Standard Time (IST) — UTC+5:30
+                </p>
+              </div>
+            )}
+
+          {frequency === "custom" && (
             <div>
               <label
                 style={{
@@ -1112,7 +1234,7 @@ function TriggerEditForm({
                   marginBottom: 4,
                 }}
               >
-                Custom cron expression
+                Custom cron expression (IST)
               </label>
               <input
                 style={{
@@ -1135,34 +1257,17 @@ function TriggerEditForm({
               </p>
             </div>
           )}
-          <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: 12,
-                fontWeight: 500,
-                color: "#6B7280",
-                marginBottom: 4,
-              }}
-            >
-              Timezone
-            </label>
-            <input
-              style={{
-                width: "100%",
-                padding: "8px 12px",
-                border: "1px solid #E5E7EB",
-                borderRadius: 8,
-                fontSize: 14,
-                outline: "none",
-                background: "#FFFFFF",
-                color: "#1A1A2E",
-                fontFamily: "Inter, sans-serif",
-              }}
-              placeholder="Asia/Kolkata"
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-            />
+
+          <div
+            style={{
+              fontSize: 12,
+              color: "#9CA3AF",
+              background: "#F9FAFB",
+              borderRadius: 6,
+              padding: "6px 10px",
+            }}
+          >
+            🇮🇳 All schedules run in India Standard Time (IST)
           </div>
         </>
       )}

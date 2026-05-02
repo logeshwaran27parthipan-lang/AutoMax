@@ -2,13 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { enqueueWorkflow } from "@/lib/queue/queueClient";
 
-// GitHub Copilot: Add a safeguard to this cron route.
-// Before firing any scheduled workflow, check that:
-// 1. The workflow has isActive === true (add this field to Prisma schema if missing)
-// 2. Log a warning and skip silently if isActive is false
-// 3. The existing matchesCron() logic stays unchanged
-// Use the existing Prisma client from @/lib/prisma
-
 export async function GET(req: NextRequest) {
   try {
     const secret = req.headers.get("x-cron-secret");
@@ -37,20 +30,12 @@ export async function GET(req: NextRequest) {
     }
 
     const now = new Date();
-    const minute = now.getUTCMinutes();
-    const hour = now.getUTCHours();
-    const day = now.getUTCDate();
-    const month = now.getUTCMonth() + 1;
-    const weekday = now.getUTCDay();
-
-    console.log(`[CRON TICK] ${hour}:${minute} UTC`);
+    console.log(`[CRON TICK] ${now.toISOString()} UTC`);
 
     const workflows = await prisma.workflow.findMany();
-
     let fired = 0;
 
     for (const wf of workflows) {
-      // Safeguard: skip if workflow is not active
       if (!wf.isActive) {
         console.warn(
           `[CRON SKIP] Workflow "${wf.name}" (${wf.id}) is inactive`,
@@ -64,8 +49,66 @@ export async function GET(req: NextRequest) {
       const cron = triggers?.cron;
       if (!cron) continue;
 
+      // Get the workflow's timezone, default to Asia/Kolkata (IST)
+      const tz = triggers?.timezone || "Asia/Kolkata";
+
+      // Convert current time to the workflow's timezone
+      let minute: number,
+        hour: number,
+        day: number,
+        month: number,
+        weekday: number;
+      try {
+        const parts = new Intl.DateTimeFormat("en-US", {
+          timeZone: tz,
+          year: "numeric",
+          month: "numeric",
+          day: "numeric",
+          hour: "numeric",
+          minute: "numeric",
+          hour12: false,
+          weekday: "short",
+        }).formatToParts(now);
+
+        const get = (type: string) => {
+          const part = parts.find((p) => p.type === type);
+          return part ? parseInt(part.value, 10) : 0;
+        };
+
+        minute = get("minute");
+        hour = get("hour") % 24; // handle 24 returned for midnight in some locales
+        day = get("day");
+        month = get("month");
+
+        // weekday from Intl: Sun=Sun, Mon=Mon etc — map to 0-6
+        const weekdayPart =
+          parts.find((p) => p.type === "weekday")?.value || "Sun";
+        const weekdayMap: Record<string, number> = {
+          Sun: 0,
+          Mon: 1,
+          Tue: 2,
+          Wed: 3,
+          Thu: 4,
+          Fri: 5,
+          Sat: 6,
+        };
+        weekday = weekdayMap[weekdayPart] ?? 0;
+
+        console.log(
+          `[CRON TICK] Workflow "${wf.name}" — local time in ${tz}: ${hour}:${String(minute).padStart(2, "0")}`,
+        );
+      } catch (tzErr) {
+        console.warn(
+          `[CRON WARN] Invalid timezone "${tz}" for workflow "${wf.name}" — falling back to UTC`,
+        );
+        minute = now.getUTCMinutes();
+        hour = now.getUTCHours();
+        day = now.getUTCDate();
+        month = now.getUTCMonth() + 1;
+        weekday = now.getUTCDay();
+      }
+
       if (matchesCron(cron, minute, hour, day, month, weekday)) {
-        // Check if workflow already has a running instance
         const activeRun = await prisma.workflowRun.findFirst({
           where: { workflowId: wf.id, status: "running" },
         });
@@ -76,7 +119,9 @@ export async function GET(req: NextRequest) {
           continue;
         }
 
-        console.log(`[CRON] Firing workflow: ${wf.name} (${wf.id})`);
+        console.log(
+          `[CRON] Firing workflow: ${wf.name} (${wf.id}) at ${tz} time`,
+        );
         await enqueueWorkflow(wf.id, { userId: wf.userId });
         fired++;
       }
@@ -112,6 +157,13 @@ function matchesCron(
         const interval = parseInt(field.slice(2));
         if (isNaN(interval)) return false;
         return value % interval === 0;
+      }
+      if (field.includes("-")) {
+        const [start, end] = field.split("-").map(Number);
+        return value >= start && value <= end;
+      }
+      if (field.includes(",")) {
+        return field.split(",").map(Number).includes(value);
       }
       const num = parseInt(field);
       if (isNaN(num)) return false;

@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
 
     // Parse request body
     const body = await req.json();
-    const { message, messages: historyMessages, accountContext } = body;
+    const { message, messages: historyMessages, accountContext, mode } = body;
 
     if (!message || typeof message !== "string") {
       return NextResponse.json(
@@ -169,7 +169,43 @@ export async function POST(req: NextRequest) {
     );
 
     // LAYER 4 - Assemble System Prompt
-    const systemPrompt = `You are AutoMax Assistant — a workflow automation helper for Indian small businesses.
+    let systemPrompt: string;
+
+    if (mode === "builder") {
+      systemPrompt = `You are AutoMax Workflow Builder. The user will describe an automation they want.
+Your job is to output ONLY a valid JSON object — no explanation, no markdown, no backticks.
+
+Available trigger types: "manual", "webhook", "schedule", "whatsapp"
+Available step types: "send_email", "send_whatsapp", "whatsapp_reply", "sheets_read", "sheets_append", "http_request", "condition", "forEach", "ai_decision"
+
+Step field rules:
+- send_email: { type: "send_email", to: "", subject: "", body: "" }
+- send_whatsapp: { type: "send_whatsapp", to: "", message: "" }
+- whatsapp_reply: { type: "whatsapp_reply", message: "" }
+- sheets_append: { type: "sheets_append", spreadsheetId: "", sheetName: "Sheet1", values: {} }
+- sheets_read: { type: "sheets_read", spreadsheetId: "", sheetName: "Sheet1" }
+- http_request: { type: "http_request", url: "", method: "POST", body: "" }
+- condition: { type: "condition", field: "", operator: "equals", value: "" }
+- ai_decision: { type: "ai_decision", prompt: "" }
+- forEach: { type: "forEach", itemsKey: "rows", substeps: [] }
+
+Output format — return ONLY this JSON, nothing else:
+{
+  "name": "short workflow name",
+  "description": "one sentence description",
+  "trigger": { "type": "trigger_type_here" },
+  "steps": [ ...steps ]
+}
+
+Rules:
+- Leave spreadsheetId, to, subject, etc. as empty strings — user will fill them in the editor.
+- For whatsapp trigger, set trigger to { "type": "whatsapp", "keyword": "" }
+- For schedule trigger, set trigger to { "type": "schedule", "cron": "0 9 * * *" }
+- Keep steps minimal and practical — 1 to 3 steps max.
+- If the user's request is unclear, still generate the closest matching workflow.
+- NEVER output anything except the JSON object.`;
+    } else {
+      systemPrompt = `You are AutoMax Assistant — a workflow automation helper for Indian small businesses.
 
 PLATFORM CAPABILITIES:
 Triggers: webhook, schedule (cron), manual, WhatsApp incoming
@@ -189,6 +225,7 @@ RULES:
 - Answer in simple English. Users are Indian small business owners, not developers.
 - If asked to build a workflow, describe the layout then ask: "Want me to generate a template for this?"
 - If you cannot determine the answer from the data provided, say: "I don't have enough data for this — check the Runs page for full logs."`;
+    }
 
     // LAYER 5 - Call Groq API with trimmed history
     // Cast to ensure proper types

@@ -50,7 +50,10 @@ export default function WorkflowsPage() {
   const [error, setError] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [schedulePreset, setSchedulePreset] = useState("0 9 * * *");
+  const [scheduleFrequency, setScheduleFrequency] = useState("daily");
+  const [scheduleHour, setScheduleHour] = useState(9);
+  const [scheduleMinute, setScheduleMinute] = useState(0);
+  const [customCron, setCustomCron] = useState("0 9 * * *");
   const [waKeyword, setWaKeyword] = useState("");
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -77,7 +80,39 @@ export default function WorkflowsPage() {
     try {
       let triggerConfig: any = { type: trigger };
       if (trigger === "schedule") {
-        triggerConfig.cron = schedulePreset;
+        const INTERVAL_FREQS = ["hourly", "30min", "5min", "1min"];
+        let cron = customCron;
+        if (scheduleFrequency !== "custom") {
+          switch (scheduleFrequency) {
+            case "daily":
+              cron = `${scheduleMinute} ${scheduleHour} * * *`;
+              break;
+            case "weekdays":
+              cron = `${scheduleMinute} ${scheduleHour} * * 1-5`;
+              break;
+            case "weekly":
+              cron = `${scheduleMinute} ${scheduleHour} * * 1`;
+              break;
+            case "monthly":
+              cron = `${scheduleMinute} ${scheduleHour} 1 * *`;
+              break;
+            case "hourly":
+              cron = `0 * * * *`;
+              break;
+            case "30min":
+              cron = `*/30 * * * *`;
+              break;
+            case "5min":
+              cron = `*/5 * * * *`;
+              break;
+            case "1min":
+              cron = `* * * * *`;
+              break;
+            default:
+              cron = `${scheduleMinute} ${scheduleHour} * * *`;
+          }
+        }
+        triggerConfig.cron = cron;
         triggerConfig.timezone = "Asia/Kolkata";
       }
       if (trigger === "whatsapp" && waKeyword.trim()) {
@@ -92,7 +127,10 @@ export default function WorkflowsPage() {
       setName("");
       setDescription("");
       setTrigger("webhook");
-      setSchedulePreset("0 9 * * *");
+      setScheduleFrequency("daily");
+      setScheduleHour(9);
+      setScheduleMinute(0);
+      setCustomCron("0 9 * * *");
       setWaKeyword("");
       setShowForm(false);
       fetchWorkflows();
@@ -402,6 +440,9 @@ export default function WorkflowsPage() {
                   border: "1px solid #fcd34d",
                   borderRadius: "10px",
                   padding: "16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
                 }}
               >
                 <p
@@ -409,11 +450,11 @@ export default function WorkflowsPage() {
                     fontSize: "14px",
                     fontWeight: 500,
                     color: "#92400e",
-                    marginBottom: "12px",
                   }}
                 >
                   ⏰ Schedule Settings
                 </p>
+
                 <div>
                   <label
                     style={{
@@ -427,8 +468,8 @@ export default function WorkflowsPage() {
                     Run frequency
                   </label>
                   <select
-                    value={schedulePreset}
-                    onChange={(e) => setSchedulePreset(e.target.value)}
+                    value={scheduleFrequency}
+                    onChange={(e) => setScheduleFrequency(e.target.value)}
                     style={{
                       width: "100%",
                       padding: "10px 12px",
@@ -439,14 +480,148 @@ export default function WorkflowsPage() {
                       outline: "none",
                     }}
                   >
-                    <option value="0 9 * * *">Every day at 9:00 AM</option>
-                    <option value="0 9 * * 1">Every Monday at 9:00 AM</option>
-                    <option value="0 9 1 * *">First day of every month</option>
-                    <option value="*/30 * * * *">Every 30 minutes</option>
-                    <option value="* * * * *">Every minute</option>
-                    <option value="0 * * * *">Every hour</option>
+                    <option value="daily">Every day</option>
+                    <option value="weekdays">Weekdays only (Mon–Fri)</option>
+                    <option value="weekly">Every week on Monday</option>
+                    <option value="monthly">First day of every month</option>
+                    <option value="hourly">Every hour</option>
+                    <option value="30min">Every 30 minutes</option>
+                    <option value="5min">Every 5 minutes</option>
+                    <option value="1min">Every minute</option>
+                    <option value="custom">Custom cron...</option>
                   </select>
                 </div>
+
+                {!["hourly", "30min", "5min", "1min"].includes(
+                  scheduleFrequency,
+                ) &&
+                  scheduleFrequency !== "custom" && (
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: 500,
+                          color: "rgba(26,26,46,0.6)",
+                          marginBottom: "4px",
+                        }}
+                      >
+                        Run at (IST)
+                      </label>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <select
+                          value={scheduleHour}
+                          onChange={(e) =>
+                            setScheduleHour(parseInt(e.target.value))
+                          }
+                          style={{
+                            flex: 1,
+                            padding: "10px 12px",
+                            border: "1px solid var(--border)",
+                            borderRadius: "10px",
+                            fontSize: "14px",
+                            backgroundColor: "#fff",
+                            outline: "none",
+                          }}
+                        >
+                          {Array.from({ length: 24 }, (_, i) => {
+                            const ampm = i < 12 ? "AM" : "PM";
+                            const displayHour =
+                              i === 0 ? 12 : i > 12 ? i - 12 : i;
+                            return (
+                              <option key={i} value={i}>
+                                {String(displayHour).padStart(2, "0")} {ampm}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <select
+                          value={scheduleMinute}
+                          onChange={(e) =>
+                            setScheduleMinute(parseInt(e.target.value))
+                          }
+                          style={{
+                            flex: 1,
+                            padding: "10px 12px",
+                            border: "1px solid var(--border)",
+                            borderRadius: "10px",
+                            fontSize: "14px",
+                            backgroundColor: "#fff",
+                            outline: "none",
+                          }}
+                        >
+                          {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map(
+                            (m) => (
+                              <option key={m} value={m}>
+                                {String(m).padStart(2, "0")}
+                              </option>
+                            ),
+                          )}
+                        </select>
+                      </div>
+                      <p
+                        style={{
+                          fontSize: "11px",
+                          color: "rgba(26,26,46,0.5)",
+                          marginTop: "4px",
+                        }}
+                      >
+                        India Standard Time (IST) — UTC+5:30
+                      </p>
+                    </div>
+                  )}
+
+                {scheduleFrequency === "custom" && (
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "12px",
+                        fontWeight: 500,
+                        color: "rgba(26,26,46,0.6)",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      Custom cron expression (IST)
+                    </label>
+                    <input
+                      value={customCron}
+                      onChange={(e) => setCustomCron(e.target.value)}
+                      placeholder="0 9 * * 1-5"
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        border: "1px solid var(--border)",
+                        borderRadius: "10px",
+                        fontSize: "14px",
+                        fontFamily: "monospace",
+                        backgroundColor: "#fff",
+                        outline: "none",
+                      }}
+                    />
+                    <p
+                      style={{
+                        fontSize: "11px",
+                        color: "rgba(26,26,46,0.5)",
+                        marginTop: "4px",
+                      }}
+                    >
+                      Format: minute hour day month weekday
+                    </p>
+                  </div>
+                )}
+
+                <p
+                  style={{
+                    fontSize: "11px",
+                    color: "#92400e",
+                    backgroundColor: "#fde68a",
+                    borderRadius: "6px",
+                    padding: "6px 10px",
+                  }}
+                >
+                  🇮🇳 All schedules run in India Standard Time (IST)
+                </p>
               </div>
             )}
 
@@ -677,6 +852,21 @@ export default function WorkflowsPage() {
           >
             + Create Workflow
           </button>
+        </div>
+      )}
+
+      {/* Discovery Banner */}
+      {!loading && workflows.length > 0 && (
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0 bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+          <p className="text-gray-800 font-medium">
+            ✨ Want to build a workflow faster?
+          </p>
+          <Link
+            href="/dashboard/ai?mode=builder"
+            className="bg-amber-500 text-white rounded-md px-4 py-2 text-sm font-medium transition hover:bg-amber-600"
+          >
+            ✨ Build with AI
+          </Link>
         </div>
       )}
 

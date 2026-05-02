@@ -2,14 +2,61 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { Send, AlertCircle } from "lucide-react";
+import { Send, AlertCircle, MessageSquare, Zap } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+
+type Mode = "chat" | "builder";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  isWorkflow?: boolean;
+  workflowData?: ParsedWorkflow;
+}
+
+interface ParsedWorkflow {
+  name: string;
+  description: string;
+  trigger: { type: string; keyword?: string; cron?: string };
+  steps: Array<{ type: string; [key: string]: any }>;
+}
+
+const STEP_LABELS: Record<string, string> = {
+  send_email: "📧 Send Email",
+  send_whatsapp: "📱 Send WhatsApp",
+  whatsapp_reply: "↩️ WhatsApp Reply",
+  sheets_read: "📊 Read Google Sheet",
+  sheets_append: "📊 Append to Sheet",
+  http_request: "🌐 HTTP Request",
+  condition: "🔀 Condition",
+  forEach: "🔁 For Each",
+  ai_decision: "🤖 AI Decision",
+};
+
+const TRIGGER_LABELS: Record<string, string> = {
+  manual: "Manual",
+  webhook: "Webhook",
+  schedule: "Schedule",
+  whatsapp: "WhatsApp",
+};
+
+function tryParseWorkflow(text: string): ParsedWorkflow | null {
+  try {
+    const cleaned = text.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+    if (parsed.name && parsed.trigger && Array.isArray(parsed.steps)) {
+      return parsed as ParsedWorkflow;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export default function AIPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<Mode>("chat");
   const [messages, setMessages] = useState<Message[]>([]);
   const [accountContext, setAccountContext] = useState<string>("");
   const [input, setInput] = useState<string>("");
@@ -18,14 +65,19 @@ export default function AIPage() {
   const [requestsRemaining, setRequestsRemaining] = useState<number>(50);
   const [cooldown, setCooldown] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [creatingId, setCreatingId] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom
   useEffect(() => {
+    if (messages.length === 0) return;
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // Fetch account context on mount
+  useEffect(() => {
+    const modeParam = searchParams.get("mode");
+    if (modeParam === "builder") setMode("builder");
+  }, [searchParams]);
+
   useEffect(() => {
     const fetchContext = async () => {
       try {
@@ -33,38 +85,58 @@ export default function AIPage() {
         setAccountContext(res.data.accountContext);
         setRequestsUsed(res.data.requestsUsed);
         setRequestsRemaining(res.data.requestsRemaining);
-        setError(null); // Clear any previous error
+        setError(null);
       } catch (err) {
         console.error("Failed to fetch context:", err);
-
-        // ✓ FIXED: Don't reset to 50
-        // Keep the old value from useState (it defaults to 50)
         setAccountContext(
           "Account context unavailable. Using last known data.",
         );
-
-        // Show warning but don't panic user
         setError(
           "⚠️ Could not refresh your usage data. Please refresh the page if issues persist.",
         );
       }
     };
-
     fetchContext();
   }, []);
+
+  // Clear messages when switching modes
+  function handleModeSwitch(newMode: Mode) {
+    setMode(newMode);
+    setMessages([]);
+    setInput("");
+    setError(null);
+  }
+
+  async function handleCreateWorkflow(
+    workflow: ParsedWorkflow,
+    msgIndex: number,
+  ) {
+    setCreatingId(String(msgIndex));
+    try {
+      const res = await axios.post("/api/workflows", {
+        name: workflow.name,
+        description: workflow.description,
+        triggers: workflow.trigger,
+        steps: workflow.steps,
+      });
+      router.push("/dashboard/workflows/" + res.data.id);
+    } catch (err) {
+      console.error("Create workflow error:", err);
+      alert("Failed to create workflow. Please try again.");
+    } finally {
+      setCreatingId(null);
+    }
+  }
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (!input.trim() || loading || cooldown || requestsRemaining === 0) {
-      return;
-    }
+    if (!input.trim() || loading || cooldown || requestsRemaining === 0) return;
 
     const userMessage = input.trim();
     setInput("");
 
-    // Add user message to chat
     const newMessages: Message[] = [
       ...messages,
       { role: "user", content: userMessage },
@@ -73,11 +145,11 @@ export default function AIPage() {
     setLoading(true);
 
     try {
-      // Call API
       const res = await axios.post("/api/ai", {
         message: userMessage,
         messages: newMessages,
         accountContext: accountContext,
+        mode: mode === "builder" ? "builder" : undefined,
       });
 
       const {
@@ -86,28 +158,45 @@ export default function AIPage() {
         requestsRemaining: remaining,
       } = res.data;
 
-      // Add assistant reply
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
-
-      // Update rate limit display
       setRequestsUsed(used);
       setRequestsRemaining(remaining);
 
-      // Start cooldown
+      if (mode === "builder") {
+        const parsed = tryParseWorkflow(reply);
+        if (parsed) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: reply,
+              isWorkflow: true,
+              workflowData: parsed,
+            },
+          ]);
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content:
+                "I couldn't generate a workflow from that. Could you describe what you want to automate in more detail? For example: 'When someone WhatsApps me, reply and save their number to a sheet.'",
+            },
+          ]);
+        }
+      } else {
+        setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      }
+
       setCooldown(true);
       setTimeout(() => setCooldown(false), 3000);
     } catch (err: any) {
       console.error("API error:", err);
-
-      // Handle rate limit error
       if (err.response?.status === 429) {
         setError("You've used all 50 messages for today. Resets at midnight.");
         setRequestsRemaining(0);
       } else {
         setError("Failed to get response. Please try again.");
       }
-
-      // Add error message to chat
       setMessages((prev) => [
         ...prev,
         {
@@ -137,6 +226,398 @@ export default function AIPage() {
           "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       }}
     >
+      {/* MODE TOGGLE */}
+      <div
+        style={{
+          padding: "16px clamp(16px, 5%, 48px)",
+          borderBottom: "1px solid #E5E7EB",
+          backgroundColor: "#FFFFFF",
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1000px",
+            margin: "0 auto",
+            display: "flex",
+            gap: "8px",
+          }}
+        >
+          <button
+            onClick={() => handleModeSwitch("chat")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 16px",
+              borderRadius: "8px",
+              fontSize: "14px",
+              fontWeight: 600,
+              border:
+                mode === "chat" ? "2px solid #F59E0B" : "2px solid #E5E7EB",
+              backgroundColor: mode === "chat" ? "#FEF3C7" : "#FFFFFF",
+              color: mode === "chat" ? "#92400E" : "#6B7280",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            <MessageSquare size={15} /> Chat
+          </button>
+          <button
+            onClick={() => handleModeSwitch("builder")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 16px",
+              borderRadius: "8px",
+              fontSize: "14px",
+              fontWeight: 600,
+              border:
+                mode === "builder" ? "2px solid #F59E0B" : "2px solid #E5E7EB",
+              backgroundColor: mode === "builder" ? "#FEF3C7" : "#FFFFFF",
+              color: mode === "builder" ? "#92400E" : "#6B7280",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            <Zap size={15} /> Workflow Builder
+          </button>
+        </div>
+      </div>
+      {/* SCROLLABLE CHAT AREA */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "clamp(24px, 5%, 48px)",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#FAFAFA",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1000px",
+            margin: "0 auto",
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            gap: "clamp(12px, 3vw, 20px)",
+          }}
+        >
+          {/* WELCOME STATE */}
+          {messages.length === 0 && (
+            <div
+              style={{
+                display: "flex",
+                padding: "clamp(6px, 5%, 12px)",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: "200px",
+                flexDirection: "column",
+                gap: "clamp(20px, 5vw, 40px)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "clamp(48px, 10vw, 80px)",
+                  lineHeight: 1,
+                  animation: "float 3s ease-in-out infinite",
+                }}
+              >
+                {mode === "builder" ? "⚡" : "🤖"}
+              </div>
+              <div style={{ textAlign: "center", maxWidth: "600px" }}>
+                <p
+                  style={{
+                    fontSize: "clamp(18px, 5vw, 28px)",
+                    fontWeight: 700,
+                    color: "#1A1A2E",
+                    margin: "0 0 12px 0",
+                    letterSpacing: "-0.5px",
+                  }}
+                >
+                  {mode === "builder"
+                    ? "What do you want to automate?"
+                    : "Hi! I'm your AutoMax assistant."}
+                </p>
+                <p
+                  style={{
+                    fontSize: "clamp(14px, 3vw, 16px)",
+                    color: "#6B7280",
+                    margin: 0,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {mode === "builder"
+                    ? "Describe your automation in plain English. I'll generate a ready-to-use workflow for you instantly."
+                    : "Ask me about your workflows, automation runs, performance analytics, or how to grow your business."}
+                </p>
+                {mode === "builder" && (
+                  <div
+                    style={{
+                      marginTop: "20px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
+                    }}
+                  >
+                    {[
+                      "When someone WhatsApps me 'price', reply with our pricing",
+                      "Every morning, send me a summary email",
+                      "Save webhook leads to Google Sheet and notify me on WhatsApp",
+                    ].map((example) => (
+                      <button
+                        key={example}
+                        onClick={() => setInput(example)}
+                        style={{
+                          padding: "10px 16px",
+                          borderRadius: "8px",
+                          border: "1px solid #E5E7EB",
+                          backgroundColor: "#FFFFFF",
+                          color: "#374151",
+                          fontSize: "13px",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          transition: "all 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.borderColor = "#F59E0B";
+                        }}
+                        onMouseLeave={(e) => {
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.borderColor = "#E5E7EB";
+                        }}
+                      >
+                        💡 {example}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* MESSAGES */}
+          {messages.map((msg, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: "flex",
+                justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
+                gap: "clamp(8px, 2vw, 16px)",
+                animation: "slideIn 0.3s ease-out",
+              }}
+            >
+              {msg.role === "assistant" && (
+                <div
+                  style={{
+                    fontSize: "clamp(20px, 4vw, 28px)",
+                    lineHeight: 1,
+                    flexShrink: 0,
+                    marginTop: "4px",
+                  }}
+                >
+                  {mode === "builder" ? "⚡" : "🤖"}
+                </div>
+              )}
+
+              {/* WORKFLOW PREVIEW CARD */}
+              {msg.isWorkflow && msg.workflowData ? (
+                <div
+                  style={{
+                    maxWidth: "70%",
+                    backgroundColor: "#FFFFFF",
+                    border: "1px solid #E5E7EB",
+                    borderRadius: "16px",
+                    padding: "20px",
+                    boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        padding: "3px 10px",
+                        borderRadius: "999px",
+                        backgroundColor: "#FEF3C7",
+                        color: "#92400E",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {TRIGGER_LABELS[msg.workflowData.trigger.type] ||
+                        msg.workflowData.trigger.type}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "#9CA3AF" }}>
+                      trigger
+                    </span>
+                  </div>
+                  <p
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: 700,
+                      color: "#1A1A2E",
+                      margin: "0 0 6px 0",
+                    }}
+                  >
+                    {msg.workflowData.name}
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "13px",
+                      color: "#6B7280",
+                      margin: "0 0 16px 0",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {msg.workflowData.description}
+                  </p>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "6px",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    {msg.workflowData.steps.map((step, si) => (
+                      <div
+                        key={si}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "8px 12px",
+                          backgroundColor: "#F9FAFB",
+                          borderRadius: "8px",
+                          fontSize: "13px",
+                          color: "#374151",
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: "#9CA3AF",
+                            fontWeight: 700,
+                            fontSize: "11px",
+                          }}
+                        >
+                          Step {si + 1}
+                        </span>
+                        <span>{STEP_LABELS[step.type] || step.type}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => handleCreateWorkflow(msg.workflowData!, idx)}
+                    disabled={creatingId === String(idx)}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      border: "none",
+                      backgroundColor:
+                        creatingId === String(idx) ? "#D1D5DB" : "#F59E0B",
+                      color: creatingId === String(idx) ? "#9CA3AF" : "#FFFFFF",
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      cursor:
+                        creatingId === String(idx) ? "not-allowed" : "pointer",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {creatingId === String(idx)
+                      ? "Creating..."
+                      : "✅ Create This Workflow"}
+                  </button>
+                </div>
+              ) : (
+                /* REGULAR CHAT BUBBLE */
+                <div
+                  style={{
+                    maxWidth: msg.role === "user" ? "60%" : "70%",
+                    padding: "clamp(12px, 2vw, 16px) clamp(14px, 3vw, 20px)",
+                    borderRadius: "clamp(8px, 2vw, 16px)",
+                    backgroundColor:
+                      msg.role === "user" ? "#F59E0B" : "#F3F4F6",
+                    color: msg.role === "user" ? "#FFFFFF" : "#1A1A2E",
+                    fontSize: "clamp(13px, 2vw, 15px)",
+                    lineHeight: 1.6,
+                    wordWrap: "break-word",
+                    boxShadow:
+                      msg.role === "user"
+                        ? "0 2px 8px rgba(245, 158, 11, 0.15)"
+                        : "0 2px 8px rgba(0, 0, 0, 0.05)",
+                  }}
+                >
+                  {msg.content}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* LOADING */}
+          {loading && (
+            <div
+              style={{
+                display: "flex",
+                gap: "clamp(8px, 2vw, 16px)",
+                alignItems: "flex-start",
+                animation: "slideIn 0.3s ease-out",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "clamp(20px, 4vw, 28px)",
+                  lineHeight: 1,
+                  flexShrink: 0,
+                  marginTop: "4px",
+                }}
+              >
+                {mode === "builder" ? "⚡" : "🤖"}
+              </div>
+              <div
+                style={{
+                  padding: "clamp(12px, 2vw, 16px) clamp(14px, 3vw, 20px)",
+                  borderRadius: "clamp(8px, 2vw, 16px)",
+                  backgroundColor: "#F3F4F6",
+                  display: "flex",
+                  gap: "clamp(4px, 1.5vw, 8px)",
+                  alignItems: "center",
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+                }}
+              >
+                {[0, 0.2, 0.4].map((delay, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      width: "clamp(6px, 1.5vw, 10px)",
+                      height: "clamp(6px, 1.5vw, 10px)",
+                      borderRadius: "50%",
+                      backgroundColor: "#9CA3AF",
+                      animation: "pulse 1.4s infinite",
+                      animationDelay: `${delay}s`,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div ref={chatEndRef} />
+        </div>
+      </div>
+
       {/* RATE LIMIT BANNER */}
       {isLimitReached && (
         <div
@@ -184,207 +665,16 @@ export default function AIPage() {
         </div>
       )}
 
-      {/* SCROLLABLE CHAT AREA */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "clamp(24px, 5%, 48px)",
-          display: "flex",
-          flexDirection: "column",
-          backgroundColor: "#FAFAFA",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "1000px",
-            margin: "0 auto",
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            gap: "clamp(12px, 3vw, 20px)",
-          }}
-        >
-          {/* WELCOME STATE */}
-          {messages.length === 0 ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minHeight: "clamp(300px, 60vh, 500px)",
-                flexDirection: "column",
-                gap: "clamp(20px, 5vw, 40px)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "clamp(48px, 10vw, 80px)",
-                  lineHeight: 1,
-                  animation: "float 3s ease-in-out infinite",
-                }}
-              >
-                🤖
-              </div>
-              <div style={{ textAlign: "center", maxWidth: "600px" }}>
-                <p
-                  style={{
-                    fontSize: "clamp(18px, 5vw, 28px)",
-                    fontWeight: 700,
-                    color: "#1A1A2E",
-                    margin: "0 0 12px 0",
-                    letterSpacing: "-0.5px",
-                  }}
-                >
-                  Hi! I&apos;m your AutoMax assistant.
-                </p>
-                <p
-                  style={{
-                    fontSize: "clamp(14px, 3vw, 16px)",
-                    color: "#6B7280",
-                    margin: 0,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  Ask me about your workflows, automation runs, performance
-                  analytics, or how to grow your business. I&apos;m here to help
-                  optimize your operations.
-                </p>
-              </div>
-            </div>
-          ) : (
-            /* MESSAGES */
-            messages.map((msg, idx) => (
-              <div
-                key={idx}
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    msg.role === "user" ? "flex-end" : "flex-start",
-                  gap: "clamp(8px, 2vw, 16px)",
-                  animation: "slideIn 0.3s ease-out",
-                }}
-              >
-                {msg.role === "assistant" && (
-                  <div
-                    style={{
-                      fontSize: "clamp(20px, 4vw, 28px)",
-                      lineHeight: 1,
-                      flexShrink: 0,
-                      marginTop: "4px",
-                    }}
-                  >
-                    🤖
-                  </div>
-                )}
-                <div
-                  style={{
-                    maxWidth: msg.role === "user" ? "60%" : "70%",
-                    padding: "clamp(12px, 2vw, 16px)",
-                    paddingLeft: "clamp(14px, 3vw, 20px)",
-                    paddingRight: "clamp(14px, 3vw, 20px)",
-                    borderRadius: "clamp(8px, 2vw, 16px)",
-                    backgroundColor:
-                      msg.role === "user" ? "#F59E0B" : "#F3F4F6",
-                    color: msg.role === "user" ? "#FFFFFF" : "#1A1A2E",
-                    fontSize: "clamp(13px, 2vw, 15px)",
-                    lineHeight: 1.6,
-                    wordWrap: "break-word",
-                    overflowWrap: "break-word",
-                    boxShadow:
-                      msg.role === "user"
-                        ? "0 2px 8px rgba(245, 158, 11, 0.15)"
-                        : "0 2px 8px rgba(0, 0, 0, 0.05)",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  {msg.content}
-                </div>
-              </div>
-            ))
-          )}
-
-          {/* LOADING STATE */}
-          {loading && (
-            <div
-              style={{
-                display: "flex",
-                gap: "clamp(8px, 2vw, 16px)",
-                alignItems: "flex-start",
-                animation: "slideIn 0.3s ease-out",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "clamp(20px, 4vw, 28px)",
-                  lineHeight: 1,
-                  flexShrink: 0,
-                  marginTop: "4px",
-                }}
-              >
-                🤖
-              </div>
-              <div
-                style={{
-                  padding: "clamp(12px, 2vw, 16px)",
-                  paddingLeft: "clamp(14px, 3vw, 20px)",
-                  paddingRight: "clamp(14px, 3vw, 20px)",
-                  borderRadius: "clamp(8px, 2vw, 16px)",
-                  backgroundColor: "#F3F4F6",
-                  display: "flex",
-                  gap: "clamp(4px, 1.5vw, 8px)",
-                  alignItems: "center",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
-                }}
-              >
-                <span
-                  style={{
-                    width: "clamp(6px, 1.5vw, 10px)",
-                    height: "clamp(6px, 1.5vw, 10px)",
-                    borderRadius: "50%",
-                    backgroundColor: "#9CA3AF",
-                    animation: "pulse 1.4s infinite",
-                  }}
-                />
-                <span
-                  style={{
-                    width: "clamp(6px, 1.5vw, 10px)",
-                    height: "clamp(6px, 1.5vw, 10px)",
-                    borderRadius: "50%",
-                    backgroundColor: "#9CA3AF",
-                    animation: "pulse 1.4s infinite",
-                    animationDelay: "0.2s",
-                  }}
-                />
-                <span
-                  style={{
-                    width: "clamp(6px, 1.5vw, 10px)",
-                    height: "clamp(6px, 1.5vw, 10px)",
-                    borderRadius: "50%",
-                    backgroundColor: "#9CA3AF",
-                    animation: "pulse 1.4s infinite",
-                    animationDelay: "0.4s",
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          <div ref={chatEndRef} />
-        </div>
-      </div>
-
       {/* FIXED BOTTOM INPUT BAR */}
       <div
         style={{
           position: "sticky",
           bottom: 0,
-          // backgroundColor: "#FFFFFF",
+          backgroundColor: "#FFFFFF",
           borderBottom: "1px solid #E5E7EB",
-          padding: "20px clamp(16px, 5%, 48px) 30px clamp(16px, 5%, 48px)",
+          padding: "20px clamp(16px, 5%, 48px) 30px",
           flexShrink: 0,
           zIndex: 10,
-          // boxShadow: "0 -4px 12px rgba(0, 0, 0, 0.05)",
         }}
       >
         <div
@@ -395,7 +685,6 @@ export default function AIPage() {
             boxSizing: "border-box",
           }}
         >
-          {/* ERROR MESSAGE */}
           {error && (
             <div
               style={{
@@ -420,7 +709,6 @@ export default function AIPage() {
             </div>
           )}
 
-          {/* INPUT FORM */}
           <form
             onSubmit={sendMessage}
             style={{
@@ -432,7 +720,11 @@ export default function AIPage() {
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask anything about your business..."
+              placeholder={
+                mode === "builder"
+                  ? "e.g. When someone WhatsApps me 'price', reply with our pricing and save their number to a sheet..."
+                  : "Ask anything about your business..."
+              }
               disabled={isLimitReached || loading}
               rows={1}
               style={{
@@ -487,32 +779,11 @@ export default function AIPage() {
                 fontWeight: 500,
                 boxShadow: "0 2px 8px rgba(245, 158, 11, 0.15)",
               }}
-              onMouseEnter={(e) => {
-                if (!isButtonDisabled) {
-                  (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                    "#ECAA11";
-                  (e.currentTarget as HTMLButtonElement).style.transform =
-                    "translateY(-2px)";
-                  (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                    "0 4px 16px rgba(245, 158, 11, 0.25)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isButtonDisabled) {
-                  (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                    "#F59E0B";
-                  (e.currentTarget as HTMLButtonElement).style.transform =
-                    "translateY(0)";
-                  (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                    "0 2px 8px rgba(245, 158, 11, 0.15)";
-                }
-              }}
             >
               <Send size={16} />
             </button>
           </form>
 
-          {/* MESSAGE COUNTER - PROGRESS BAR */}
           <div
             style={{
               marginTop: "12px",
@@ -574,31 +845,10 @@ export default function AIPage() {
       </div>
 
       <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
-        }
-        
-        /* Smooth scrolling */
-        div {
-          scroll-behavior: smooth;
-        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+        div { scroll-behavior: smooth; }
       `}</style>
     </div>
   );

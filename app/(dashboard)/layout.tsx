@@ -13,11 +13,13 @@ import {
   CreditCard,
   Zap,
   LogOut,
+  Clock,
 } from "lucide-react";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Workflows", href: "/dashboard/workflows", icon: GitBranch },
+  { name: "Runs", href: "/dashboard/runs", icon: Clock },
   { name: "Email", href: "/dashboard/email", icon: Mail },
   { name: "WhatsApp", href: "/dashboard/whatsapp", icon: MessageCircle },
   { name: "AI Assistant", href: "/dashboard/ai", icon: Sparkles },
