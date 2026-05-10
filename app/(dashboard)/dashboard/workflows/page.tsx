@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
+import { useToast } from "@/components/ui/Toast";
 
 type WorkflowRun = {
   startedAt: string;
@@ -50,6 +51,7 @@ export default function WorkflowsPage() {
   const [error, setError] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [scheduleFrequency, setScheduleFrequency] = useState("daily");
   const [scheduleHour, setScheduleHour] = useState(9);
   const [scheduleMinute, setScheduleMinute] = useState(0);
@@ -57,6 +59,9 @@ export default function WorkflowsPage() {
   const [waKeyword, setWaKeyword] = useState("");
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDeleteName, setConfirmDeleteName] = useState<string>("");
+  const toast = useToast();
 
   useEffect(() => {
     fetchWorkflows();
@@ -141,16 +146,48 @@ export default function WorkflowsPage() {
     }
   }
 
-  async function deleteWorkflow(id: string) {
-    if (!confirm("Delete this workflow and all its run history?")) return;
-    setDeletingId(id);
+  function deleteWorkflow(workflowId: string) {
+    setConfirmDeleteId(workflowId);
+    setConfirmDeleteName(
+      workflows.find((w) => w.id === workflowId)?.name || "this workflow",
+    );
+    return;
+  }
+
+  async function confirmDelete() {
+    if (!confirmDeleteId) return;
+    const workflowId = confirmDeleteId;
+    setDeletingId(workflowId);
     try {
-      await axios.delete(`/api/workflows/${id}`);
-      setWorkflows((prev) => prev.filter((w) => w.id !== id));
+      await axios.delete(`/api/workflows/${workflowId}`);
+      await fetchWorkflows();
+      toast.success("Workflow deleted.");
     } catch {
-      alert("Failed to delete workflow");
+      toast.error("Failed to delete workflow.");
     } finally {
       setDeletingId(null);
+      setConfirmDeleteId(null);
+    }
+  }
+
+  async function handleDuplicate(workflowId: string) {
+    setDuplicatingId(workflowId);
+    try {
+      const response = await fetch(`/api/workflows/${workflowId}/duplicate`, {
+        method: "POST",
+      });
+      if (response.ok) {
+        fetchWorkflows();
+      } else {
+        console.error(
+          "[WORKFLOW_DUPLICATE] Failed to duplicate workflow",
+          response.status,
+        );
+      }
+    } catch (err) {
+      console.error("[WORKFLOW_DUPLICATE] Request failed", err);
+    } finally {
+      setDuplicatingId(null);
     }
   }
 
@@ -169,7 +206,7 @@ export default function WorkflowsPage() {
       });
     } catch (err) {
       console.error("[WORKFLOW_TOGGLE] Failed to toggle workflow", err);
-      alert("Failed to toggle workflow");
+      toast.error("Failed to toggle workflow.");
     } finally {
       setTogglingId(null);
     }
@@ -803,55 +840,107 @@ export default function WorkflowsPage() {
         <div
           style={{
             backgroundColor: "#fff",
-            border: "1px solid var(--border)",
-            borderRadius: "12px",
-            padding: "64px",
+            border: "1px solid #E5E7EB",
+            borderRadius: 16,
+            padding: "64px 32px",
             textAlign: "center",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+            boxShadow: "0 2px 12px rgba(26,26,46,0.07)",
+            maxWidth: 480,
+            margin: "48px auto",
           }}
         >
-          <div style={{ fontSize: "48px", marginBottom: "16px" }}>⚡</div>
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              background: "#FFFBEB",
+              border: "2px solid #FCD34D",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 20px",
+              fontSize: 28,
+            }}
+          >
+            ⚡
+          </div>
           <p
             style={{
-              fontSize: "20px",
-              fontWeight: 600,
-              color: "var(--foreground)",
-              marginBottom: "8px",
+              fontSize: 20,
+              fontWeight: 700,
+              color: "#1A1A2E",
+              marginBottom: 8,
             }}
           >
             No workflows yet
           </p>
           <p
             style={{
-              color: "rgba(26,26,46,0.6)",
-              fontSize: "14px",
-              marginBottom: "24px",
+              color: "#6B7280",
+              fontSize: 14,
+              marginBottom: 28,
+              lineHeight: 1.6,
             }}
           >
-            Create your first automation and connect it to any webhook
+            Workflows let you automate tasks like sending emails, updating
+            spreadsheets, and responding to webhooks — all without writing code.
           </p>
-          <button
-            onClick={() => setShowForm(true)}
+          <div
             style={{
-              padding: "10px 20px",
-              backgroundColor: "var(--primary)",
-              color: "#fff",
-              borderRadius: "10px",
-              fontWeight: 500,
-              fontSize: "14px",
-              border: "none",
-              cursor: "pointer",
-              transition: "background-color 0.2s ease",
+              display: "flex",
+              gap: 10,
+              justifyContent: "center",
+              flexWrap: "wrap",
             }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor = "#d97706")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = "var(--primary)")
-            }
           >
-            + Create Workflow
-          </button>
+            <button
+              onClick={() => setShowForm(true)}
+              style={{
+                padding: "10px 22px",
+                backgroundColor: "#F59E0B",
+                color: "#fff",
+                borderRadius: 8,
+                fontWeight: 600,
+                fontSize: 14,
+                border: "none",
+                cursor: "pointer",
+                fontFamily: "Inter, sans-serif",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#D97706")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "#F59E0B")
+              }
+            >
+              + Create your first workflow
+            </button>
+            <a
+              href="/dashboard/ai?mode=builder"
+              style={{
+                padding: "10px 22px",
+                backgroundColor: "#fff",
+                color: "#1A1A2E",
+                borderRadius: 8,
+                fontWeight: 600,
+                fontSize: 14,
+                border: "1px solid #E5E7EB",
+                cursor: "pointer",
+                fontFamily: "Inter, sans-serif",
+                textDecoration: "none",
+                display: "inline-block",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.borderColor = "#F59E0B")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.borderColor = "#E5E7EB")
+              }
+            >
+              ✨ Build with AI instead
+            </a>
+          </div>
         </div>
       )}
 
@@ -1055,6 +1144,33 @@ export default function WorkflowsPage() {
 
                   {/* Actions */}
                   <div className="flex flex-col gap-2 shrink-0">
+                    <button
+                      onClick={() => handleDuplicate(w.id)}
+                      disabled={duplicatingId === w.id}
+                      style={{
+                        padding: "10px 16px",
+                        backgroundColor: "#6b7280",
+                        color: "#fff",
+                        borderRadius: "10px",
+                        fontWeight: 500,
+                        fontSize: "14px",
+                        textAlign: "center",
+                        border: "none",
+                        cursor:
+                          duplicatingId === w.id ? "not-allowed" : "pointer",
+                        opacity: duplicatingId === w.id ? 0.6 : 1,
+                        transition: "background-color 0.2s ease",
+                      }}
+                      onMouseEnter={(e) =>
+                        duplicatingId !== w.id &&
+                        (e.currentTarget.style.backgroundColor = "#4b5563")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = "#6b7280")
+                      }
+                    >
+                      {duplicatingId === w.id ? "Duplicating..." : "Duplicate"}
+                    </button>
                     <Link
                       href={`/dashboard/workflows/${w.id}`}
                       style={{
@@ -1153,6 +1269,83 @@ export default function WorkflowsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+      {confirmDeleteId && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            background: "rgba(26,26,46,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 14,
+              padding: "32px 28px",
+              maxWidth: 400,
+              width: "100%",
+              boxShadow: "0 8px 40px rgba(26,26,46,0.18)",
+              fontFamily: "Inter, sans-serif",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                color: "#1A1A2E",
+                marginBottom: 8,
+              }}
+            >
+              Delete Workflow
+            </h2>
+            <p style={{ fontSize: 14, color: "#6B7280", marginBottom: 24 }}>
+              Are you sure you want to delete{" "}
+              <strong>{confirmDeleteName}</strong>? This will permanently remove
+              the workflow and all its run history.
+            </p>
+            <div
+              style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+            >
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                style={{
+                  padding: "9px 20px",
+                  borderRadius: 8,
+                  border: "1px solid #E5E7EB",
+                  background: "#fff",
+                  color: "#1A1A2E",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{
+                  padding: "9px 20px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "#DC2626",
+                  color: "#fff",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

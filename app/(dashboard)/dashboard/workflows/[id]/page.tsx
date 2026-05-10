@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/Toast";
 
 type Step = { type: string; [key: string]: any };
 type Run = {
@@ -1375,6 +1376,7 @@ function TriggerEditForm({
 }
 
 export default function WorkflowDetailPage() {
+  const toast = useToast();
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
@@ -1431,6 +1433,9 @@ export default function WorkflowDetailPage() {
 
   // Edit step
   const [editingStepIdx, setEditingStepIdx] = useState<number | null>(null);
+  const [confirmDeleteStepIndex, setConfirmDeleteStepIndex] = useState<
+    number | null
+  >(null);
   const [editStepType, setEditStepType] = useState("send_email");
   const [editStepForm, setEditStepForm] = useState<any>({});
   const [editStepError, setEditStepError] = useState("");
@@ -1643,9 +1648,20 @@ export default function WorkflowDetailPage() {
 
   // ── Delete step ──
   async function handleDeleteStep(idx: number) {
-    if (!workflow || !confirm("Delete this step?")) return;
-    if (editingStepIdx === idx) setEditingStepIdx(null);
-    await saveSteps(workflow.steps.filter((_, i) => i !== idx));
+    if (!workflow) return;
+    setConfirmDeleteStepIndex(idx);
+    return;
+  }
+
+  async function confirmDeleteStep() {
+    if (confirmDeleteStepIndex === null || !workflow) return;
+    const idx = confirmDeleteStepIndex;
+    try {
+      if (editingStepIdx === idx) setEditingStepIdx(null);
+      await saveSteps(workflow.steps.filter((_, i) => i !== idx));
+    } finally {
+      setConfirmDeleteStepIndex(null);
+    }
   }
 
   // ── Reorder steps ──
@@ -3293,6 +3309,81 @@ export default function WorkflowDetailPage() {
             </div>
           )}
         </>
+      )}
+      {confirmDeleteStepIndex !== null && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            background: "rgba(26,26,46,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 14,
+              padding: "32px 28px",
+              maxWidth: 400,
+              width: "100%",
+              boxShadow: "0 8px 40px rgba(26,26,46,0.18)",
+              fontFamily: "Inter, sans-serif",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                color: "#1A1A2E",
+                marginBottom: 8,
+              }}
+            >
+              Delete Step
+            </h2>
+            <p style={{ fontSize: 14, color: "#6B7280", marginBottom: 24 }}>
+              Are you sure you want to delete this step? This cannot be undone.
+            </p>
+            <div
+              style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+            >
+              <button
+                onClick={() => setConfirmDeleteStepIndex(null)}
+                style={{
+                  padding: "9px 20px",
+                  borderRadius: 8,
+                  border: "1px solid #E5E7EB",
+                  background: "#fff",
+                  color: "#1A1A2E",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteStep}
+                style={{
+                  padding: "9px 20px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "#DC2626",
+                  color: "#fff",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

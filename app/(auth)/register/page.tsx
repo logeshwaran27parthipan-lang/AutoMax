@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useToast } from "@/components/ui/Toast";
 
 const schema = z.object({
   email: z.string().email(),
@@ -14,6 +15,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function RegisterPage() {
+  const toast = useToast();
   const { register, handleSubmit } = useForm<FormValues>({
     resolver: zodResolver(schema),
   });
@@ -24,7 +26,7 @@ export default function RegisterPage() {
       window.location.href = "/dashboard";
     } catch (err) {
       console.error(err);
-      alert("Registration failed");
+      toast.error("Registration failed. Please try again.");
     }
   };
 

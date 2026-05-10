@@ -10,6 +10,7 @@ import React, {
 import axios from "axios";
 import { Send, AlertCircle, MessageSquare, Zap } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useToast } from "@/components/ui/Toast";
 
 type Mode = "chat" | "builder";
 
@@ -73,6 +74,7 @@ export function AiPageInner() {
   const [error, setError] = useState<string | null>(null);
   const [creatingId, setCreatingId] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -128,7 +130,7 @@ export function AiPageInner() {
       router.push("/dashboard/workflows/" + res.data.id);
     } catch (err) {
       console.error("Create workflow error:", err);
-      alert("Failed to create workflow. Please try again.");
+      toast.error("Failed to create workflow. Please try again.");
     } finally {
       setCreatingId(null);
     }

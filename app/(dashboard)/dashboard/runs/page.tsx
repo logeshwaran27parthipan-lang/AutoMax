@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 type RunStep = {
   id: string;
@@ -45,6 +46,8 @@ export default function RunsHistoryPage() {
   const [runSteps, setRunSteps] = useState<Record<string, RunStep[]>>({});
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
   const [loadingSteps, setLoadingSteps] = useState<string | null>(null);
+  const toast = useToast();
+  const [markingFailedId, setMarkingFailedId] = useState<string | null>(null);
 
   const fetchRuns = async (loadMore: boolean = false) => {
     try {
@@ -87,6 +90,25 @@ export default function RunsHistoryPage() {
       setRunSteps((prev) => ({ ...prev, [run.id]: [] }));
     } finally {
       setLoadingSteps(null);
+    }
+  };
+
+  const handleMarkFailed = async (runId: string) => {
+    setMarkingFailedId(runId);
+    try {
+      const res = await fetch(`/api/runs/${runId}`, { method: "PATCH" });
+      if (res.ok) {
+        toast.success("Run marked as failed.");
+        setRuns((prev) =>
+          prev.map((r) => (r.id === runId ? { ...r, status: "failed" } : r)),
+        );
+      } else {
+        toast.error("Failed to update run status.");
+      }
+    } catch {
+      toast.error("Something went wrong.");
+    } finally {
+      setMarkingFailedId(null);
     }
   };
 
@@ -196,20 +218,77 @@ export default function RunsHistoryPage() {
       {!loading && runs.length === 0 && (
         <div
           style={{
+            backgroundColor: "#fff",
+            border: "1px solid #E5E7EB",
+            borderRadius: 16,
+            padding: "64px 32px",
             textAlign: "center",
-            padding: "48px 16px",
-            border: "1px solid var(--border)",
-            borderRadius: "8px",
-            backgroundColor: "var(--card)",
+            boxShadow: "0 2px 12px rgba(26,26,46,0.07)",
+            maxWidth: 480,
+            margin: "48px auto",
           }}
         >
-          <Clock
-            size={32}
-            style={{ margin: "0 auto 16px", color: "var(--muted-foreground)" }}
-          />
-          <p style={{ fontSize: "14px", color: "var(--muted-foreground)" }}>
-            No workflow runs yet
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              background: "#F0FDF4",
+              border: "2px solid #86EFAC",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 20px",
+              fontSize: 28,
+            }}
+          >
+            🕐
+          </div>
+          <p
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: "#1A1A2E",
+              marginBottom: 8,
+            }}
+          >
+            No runs yet
           </p>
+          <p
+            style={{
+              color: "#6B7280",
+              fontSize: 14,
+              marginBottom: 28,
+              lineHeight: 1.6,
+            }}
+          >
+            Every time a workflow runs — triggered by a webhook, schedule, or
+            manually — the execution log will appear here with full step details.
+          </p>
+          <a
+            href="/dashboard/workflows"
+            style={{
+              padding: "10px 22px",
+              backgroundColor: "#F59E0B",
+              color: "#fff",
+              borderRadius: 8,
+              fontWeight: 600,
+              fontSize: 14,
+              border: "none",
+              cursor: "pointer",
+              fontFamily: "Inter, sans-serif",
+              textDecoration: "none",
+              display: "inline-block",
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor = "#D97706")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.backgroundColor = "#F59E0B")
+            }
+          >
+            Go to Workflows →
+          </a>
         </div>
       )}
 
@@ -338,6 +417,35 @@ export default function RunsHistoryPage() {
                               }}
                             />
                           )}
+                          {run.status === "running" &&
+                            new Date().getTime() -
+                              new Date(run.startedAt).getTime() >
+                              2 * 60 * 1000 && (
+                              <button
+                                onClick={() => handleMarkFailed(run.id)}
+                                disabled={markingFailedId === run.id}
+                                style={{
+                                  marginLeft: 8,
+                                  padding: "3px 10px",
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  borderRadius: 6,
+                                  border: "1px solid #FCA5A5",
+                                  background: "#FFF1F2",
+                                  color: "#DC2626",
+                                  cursor:
+                                    markingFailedId === run.id
+                                      ? "not-allowed"
+                                      : "pointer",
+                                  opacity: markingFailedId === run.id ? 0.6 : 1,
+                                  fontFamily: "Inter, sans-serif",
+                                }}
+                              >
+                                {markingFailedId === run.id
+                                  ? "Updating..."
+                                  : "Mark as Failed"}
+                              </button>
+                            )}
                           <span style={{ color: getStatusColor(run.status) }}>
                             {run.status.charAt(0).toUpperCase() +
                               run.status.slice(1)}

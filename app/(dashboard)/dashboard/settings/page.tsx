@@ -11,14 +11,17 @@ import {
   Loader2,
   MessageCircle,
 } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 export default function SettingsPage() {
+  const toast = useToast();
   const [orgName, setOrgName] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [wahaUrl, setWahaUrl] = useState("");
   const [wahaSaving, setWahaSaving] = useState(false);
@@ -49,14 +52,11 @@ export default function SettingsPage() {
   }, []);
 
   const handleRegenerate = async () => {
-    if (
-      !window.confirm(
-        "Are you sure? Your old API key will stop working immediately.",
-      )
-    ) {
-      return;
-    }
+    setConfirmRegenerate(true);
+    return;
+  };
 
+  const confirmRegenerateKey = async () => {
     setRegenerating(true);
     try {
       const res = await fetch("/api/org/api-key", { method: "PATCH" });
@@ -73,6 +73,7 @@ export default function SettingsPage() {
       setError("An error occurred while regenerating the API key");
     } finally {
       setRegenerating(false);
+      setConfirmRegenerate(false);
     }
   };
 
@@ -543,6 +544,82 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {confirmRegenerate && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            background: "rgba(26,26,46,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 14,
+              padding: "32px 28px",
+              maxWidth: 400,
+              width: "100%",
+              boxShadow: "0 8px 40px rgba(26,26,46,0.18)",
+              fontFamily: "Inter, sans-serif",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                color: "#1A1A2E",
+                marginBottom: 8,
+              }}
+            >
+              Regenerate API Key
+            </h2>
+            <p style={{ fontSize: 14, color: "#6B7280", marginBottom: 24 }}>
+              Are you sure? Your old API key will stop working immediately.
+            </p>
+            <div
+              style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+            >
+              <button
+                onClick={() => setConfirmRegenerate(false)}
+                style={{
+                  padding: "9px 20px",
+                  borderRadius: 8,
+                  border: "1px solid #E5E7EB",
+                  background: "#fff",
+                  color: "#1A1A2E",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmRegenerateKey}
+                style={{
+                  padding: "9px 20px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "#F59E0B",
+                  color: "#fff",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                Regenerate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes spin {

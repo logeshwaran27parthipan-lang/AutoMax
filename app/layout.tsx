@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ToastContainer } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
   title: "AutoMax",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <ToastContainer />
+      </body>
     </html>
   );
 }
