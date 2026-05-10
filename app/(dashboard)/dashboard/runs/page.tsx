@@ -263,7 +263,8 @@ export default function RunsHistoryPage() {
             }}
           >
             Every time a workflow runs — triggered by a webhook, schedule, or
-            manually — the execution log will appear here with full step details.
+            manually — the execution log will appear here with full step
+            details.
           </p>
           <a
             href="/dashboard/workflows"
