@@ -1,6 +1,12 @@
 "use client";
 
-import React, { Suspense, useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  Suspense,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 import axios from "axios";
 import { Send, AlertCircle, MessageSquare, Zap } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";

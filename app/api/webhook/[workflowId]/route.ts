@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { enqueueWorkflow } from "@/lib/queue/queueClient";
 
 /**
  * POST /api/webhook/[workflowId]
@@ -81,30 +80,23 @@ export async function POST(
     // 4. ENQUEUE WORKFLOW (ASYNC - NO TIMEOUT)
     // ============================================
     try {
-      await enqueueWorkflow(workflowId, {
+      const { processEvent } = await import("@/lib/engine/workflowEngine");
+      await processEvent("webhook", {
+        workflowId,
         userId: workflow.userId,
-        trigger: "webhook",
         payload: body,
-        receivedAt: new Date().toISOString(),
       });
-
-      console.log("[WEBHOOK] Workflow enqueued successfully", { workflowId });
-    } catch (queueErr) {
+      console.log("[WEBHOOK] Workflow processed successfully", { workflowId });
+    } catch (execErr) {
       const error =
-        queueErr instanceof Error ? queueErr : new Error(String(queueErr));
-      console.error("[WEBHOOK] Failed to enqueue workflow", {
+        execErr instanceof Error ? execErr : new Error(String(execErr));
+      console.error("[WEBHOOK] Failed to process workflow", {
         workflowId,
         error: error.message,
       });
-
-      // Still return 202 Accepted even if queue fails
-      // (graceful degradation - at least we logged it)
       return NextResponse.json(
-        {
-          received: true,
-          warning: "Workflow queued but processing may be delayed",
-        },
-        { status: 202 },
+        { error: "Workflow execution failed" },
+        { status: 500 },
       );
     }
 
@@ -113,7 +105,7 @@ export async function POST(
     // ============================================
     // Return 202 Accepted - webhook is queued, not executed yet
     // This ensures we return before Vercel's 10s timeout
-    return NextResponse.json({ received: true, workflowId }, { status: 202 });
+    return NextResponse.json({ received: true, workflowId }, { status: 200 });
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
     console.error("[WEBHOOK] Request failed", {
